@@ -20,8 +20,6 @@ pub fn parse_data<'a>(src: Text<'a>) -> ParseResult<Text<'a>, Token<(String, Dat
     )
     .parse(rest)?;
 
-    let (_, rest) = lexeme(ws, newline_or_end).parse(rest)?;
-
     Ok((name.zip(data), rest))
 }
 

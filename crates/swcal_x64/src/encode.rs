@@ -28,6 +28,9 @@ pub fn encode(inst: &Inst, format: &InstFormat) -> Result<BinInst, String> {
             let mut has_ext_reg = false;
             match &inst.operand {
                 Operand::Zero => {}
+                Operand::Reg(reg) => {}
+                Operand::Imm(imm) => {}
+                Operand::ModRM(rm) => {}
                 Operand::Imm2Reg { reg, .. } => {
                     if reg.is_extended() || reg.needs_rex() {
                         has_ext_reg = true;
@@ -155,6 +158,15 @@ pub fn encode(inst: &Inst, format: &InstFormat) -> Result<BinInst, String> {
         Operand::Zero => {
             // 无操作数，无需额外编码
         }
+        Operand::Reg(..) => {
+            todo!()
+        }
+        Operand::Imm(..) => {
+            todo!()
+        }
+        Operand::ModRM(..) => {
+            todo!()
+        }
         Operand::Imm2Reg { reg, imm } => {
             // 立即数到寄存器：opcode + ModRM
             let modrm: u8 = 0b11_000_000 | (reg.id() << 3) | reg.id();
@@ -183,6 +195,9 @@ pub fn encode(inst: &Inst, format: &InstFormat) -> Result<BinInst, String> {
 fn operand_kind_from_inst(inst: &Inst) -> OperandKind {
     match &inst.operand {
         Operand::Zero => OperandKind::ZeroOprand,
+        Operand::Reg(..) => OperandKind::Reg,
+        Operand::Imm(..) => OperandKind::Imm,
+        Operand::ModRM(..) => OperandKind::RM,
         Operand::Imm2Reg { .. } => OperandKind::Reg2Imm,
         Operand::Reg2RM { .. } => OperandKind::Reg2RM,
         Operand::RM2Reg { .. } => OperandKind::RM2Reg,

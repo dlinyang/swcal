@@ -181,15 +181,15 @@ pub fn consume_pc<'a>(f: impl Fn(char) -> bool + Copy) -> impl ParsecT<Text<'a>,
     move |input: Text<'a>| char_fn_pc(f).parse(input).map(|(_, rest)| ((), rest))
 }
 
-pub fn newline<'a>(input: Text<'a>) -> ParseResult<Text<'a>, Token<()>> {
-    char_pc('\n').parse(input).map(|(t, rest)| (Token::new((), t.text_pos), rest))
+pub fn newline<'a>(input: Text<'a>) -> ParseResult<Text<'a>, ()> {
+    char_pc('\n').parse(input).map(|(t, rest)| ((), rest))
 }
 
 #[inline]
-pub fn end<'a>(input: Text<'a>) -> ParseResult<Text<'a>,Token<()>> {
+pub fn end<'a>(input: Text<'a>) -> ParseResult<Text<'a>, ()> {
     let mut i = input;
     if i.next() == None {
-        Ok((Token::new((), i.text_pos), i))
+        Ok(((), i))
     }
     else {
         Err(Default::default())

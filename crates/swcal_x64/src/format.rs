@@ -12,6 +12,8 @@ pub struct Opcode {
 pub enum OperandKind {
     ZeroOprand,
     Reg,
+    Imm,
+    RM,
     Reg2Imm,
     Reg2RM,
     RM2Reg,
