@@ -195,4 +195,4 @@ aligned_data:
     mov dword [rax + rdi*4], 0x12345678
 
     ; RIP相对寻址
-    lea rax, [rel msg]
+    lea rax, [msg]

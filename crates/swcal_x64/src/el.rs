@@ -37,4 +37,5 @@ pub enum Data {
     Inst(Inst),
     RawData(Vec<u8>),
     Res(u64),
+    Align(u8),
 }

@@ -115,6 +115,15 @@ pub fn parse_dex<'a>(src: Text<'a>) -> ParseResult<Text<'a>, Token<&'a str>> {
     .parse(src)
 }
 
+pub fn parse_neg<'a>(src: Text<'a>) -> ParseResult<Text<'a>, Token<&'a str>> {
+    str_fn_pc(|str|{
+        if let Some('-') = str.chars().next() {
+            str[1..].find(|ch: char| !ch.is_ascii_digit()).unwrap_or_default() + 1
+        }
+        else { 0 }
+    }).parse(src)
+}
+
 pub fn parse_hex<'a>(src: Text<'a>) -> ParseResult<Text<'a>, Token<&'a str>> {
     let (_, rest) = str_pc("0x").parse(src)?;
     str_fn_pc(|str| {

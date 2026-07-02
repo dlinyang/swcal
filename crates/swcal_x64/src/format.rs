@@ -14,10 +14,12 @@ pub enum OperandKind {
     Reg,
     Imm,
     RM,
-    Reg2Imm,
+    // ModRM.Mode
+    Imm2RM,
     Reg2RM,
     RM2Reg,
-    Reg2Reg,
+    // tac
+    RmOpImm2Reg,
 }
 
 pub struct InstFormat {

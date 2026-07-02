@@ -22,21 +22,43 @@ impl std::fmt::Display for Imm {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AddrWidth {
+    B8,
+    B16,
+    B32,
+    B64,
+}
+
+impl std::fmt::Display for AddrWidth {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AddrWidth::B8 => write!(f, "byte"),
+            AddrWidth::B16 => write!(f, "word"),
+            AddrWidth::B32 => write!(f, "dword"),
+            AddrWidth::B64 => write!(f, "qword"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RM {
-    //[Reg]
-    AddrReg(Reg),
-    //[Reg+disp]
-    AddrRegDisp(Reg, Imm),
+    Reg(Reg),
+    //w [Reg]
+    AddrReg(AddrWidth, Reg),
+    //width [Reg+disp]
+    AddrRegDisp(AddrWidth, Reg, Imm),
+    // ModRM,noModRM.rm == 100
     //[base + index * scale]
-    AddrSIB(Reg, Reg, u8),
+    AddrSIB(AddrWidth, Reg, Reg, u8),
 }
 
 impl std::fmt::Display for RM {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RM::AddrReg(reg) => write!(f, "[{}]", reg),
-            RM::AddrRegDisp(reg, imm) => write!(f, "[{} + {}]", reg, imm),
-            RM::AddrSIB(base, index, scale) => write!(f, "[{} + {} * {}]", base, index, scale),
+            RM::Reg(reg) => write!(f, "{}", reg),
+            RM::AddrReg(width, reg) => write!(f, "{width} [{reg}]"),
+            RM::AddrRegDisp(width, reg, imm) => write!(f, "{width} [{reg} + {imm}]"),
+            RM::AddrSIB(width, base, index, scale) => write!(f, "{width} [{base} + {index} * {scale}]"),
         }
     }
 }
@@ -44,26 +66,24 @@ impl std::fmt::Display for RM {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Operand {
     Zero,
-    Reg(Reg),
     Imm(Imm),
-    ModRM(RM),
-    Imm2Reg { reg: Reg, imm: Imm },
+    RM(RM),
+    Imm2RM { rm: RM, imm: Imm },
     Reg2RM { reg: Reg, rm: RM },
     RM2Reg { reg: Reg, rm: RM },
-    Reg2Reg { src_reg: Reg, dst_reg: Reg },
+    RmOpImm2reg { src: Reg, rm: RM, imm: Imm}
 }
 
 impl std::fmt::Display for Operand {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Operand::Zero => write!(f, ""),
-            Operand::Reg(reg) => write!(f, "{}", reg),
             Operand::Imm(imm) => write!(f, "{}", imm),
-            Operand::ModRM(rm) => write!(f, "{}", rm),
-            Operand::Imm2Reg { reg, imm } => write!(f, "{}, {}", reg, imm),
+            Operand::RM(rm) => write!(f, "{}", rm),
+            Operand::Imm2RM { rm: reg, imm } => write!(f, "{}, {}", reg, imm),
             Operand::Reg2RM { reg, rm } => write!(f, "{}, {}", reg, rm),
             Operand::RM2Reg { reg, rm } => write!(f, "{}, {}", rm, reg),
-            Operand::Reg2Reg { src_reg, dst_reg } => write!(f, "{}, {}", src_reg, dst_reg),
+            Operand::RmOpImm2reg { src, rm, imm } => write!(f, "{}, {}, {}", src, rm, imm),
         }
     }
 }
@@ -224,6 +244,24 @@ impl Reg {
             RegKind::R16 => 2,
             RegKind::R32 => 4,
             RegKind::R64 => 8,
+        }
+    }
+
+    pub fn bit_width(&self) -> AddrWidth {
+        match self.kind() {
+            RegKind::R8  => AddrWidth::B8,
+            RegKind::R16 => AddrWidth::B16,
+            RegKind::R32 => AddrWidth::B32,
+            RegKind::R64 => AddrWidth::B64,
+        }
+    }
+
+    pub fn zero_imm(&self) -> Imm {
+        match self.kind() {
+            RegKind::R8 => Imm::Imm8(0),
+            RegKind::R16 => Imm::Imm16(0),
+            RegKind::R32 => Imm::Imm32(0),
+            RegKind::R64 => Imm::Imm64(0),
         }
     }
 

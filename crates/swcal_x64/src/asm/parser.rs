@@ -1,13 +1,11 @@
-use crate::asm::data::parse_data;
-use crate::asm::inst::parse_inst;
-use crate::el::Data;
-use crate::el::EL;
-use crate::el::Section;
+use crate::asm::data::*;
+use crate::asm::inst::*;
+use crate::asm::lexer::*;
+use crate::el::*;
 use crate::inst::Inst;
-use swcal_parsec::*;
 use swcal_parsec::parsec::*;
 use swcal_parsec::text::*;
-use crate::asm::lexer::*;
+use swcal_parsec::*;
 
 pub fn parse(src: &str) -> ParseResult<(), EL> {
     let mut text = Text::new(src, Default::default());
@@ -16,31 +14,40 @@ pub fn parse(src: &str) -> ParseResult<(), EL> {
     while text.inner.len() > 0 {
         let (_, rest) = many0(empty_line.or(ws_or_comment)).parse(text)?;
 
-        eprint!("stmt start {}: ", rest.text_pos);
+        eprint!("stmt start {} {} => ", "crates/swcal_x64/tests/test_asm.asm", rest.text_pos);
+
+        let line_end = |input| {
+            choice!(
+                lexeme(ws, newline_or_end),
+                lexeme(ws, parse_comment_as_empty)
+            )
+            .parse(input)
+        };
+
         let (asm, rest) = choice!(
-            parse_section_stmt,
-            parse_label_stmt,
-            parse_global_stmt,
-            parse_data_stmt,
-            parse_inst_stmt
+            parse_section_stmt.terminated(line_end),
+            parse_align_stmt.terminated(line_end),
+            parse_label_stmt.terminated(line_end),
+            parse_global_stmt.terminated(line_end),
+            parse_data_stmt.terminated(line_end),
+            parse_inst_stmt.terminated(line_end),
+            parse_label_inst_stmt.terminated(line_end)
         )
         .parse(rest)?;
-
-
-        let (_, rest) = choice!(
-            lexeme(ws, newline_or_end),
-            lexeme(ws, parse_comment_as_empty)
-        ).parse(rest)?;
 
         match asm {
             AsmStmt::Section(section_name) => {
                 eprintln!("section {}", section_name);
                 if section.name == None {
                     section.name = Some(section_name)
+                } else {
+                    el.sections
+                        .push(std::mem::replace(&mut section, Section::new()));
                 }
-                else {
-                    el.sections.push(std::mem::replace(&mut section, Section::new()));
-                }
+            }
+            AsmStmt::Align(align) => {
+                eprintln!("algin {align}");
+                section.data.push(Data::Align(align));
             }
             AsmStmt::Label(name) => {
                 eprintln!("{name}:");
@@ -54,10 +61,13 @@ pub fn parse(src: &str) -> ParseResult<(), EL> {
                 eprintln!("{name} {data:?}");
                 section.labels.push((name, section.data.len()));
                 section.data.push(data);
-            },
+            }
             AsmStmt::Inst(inst) => {
                 eprintln!("{inst}");
                 section.data.push(Data::Inst(inst));
+            }
+            AsmStmt::LabelInst(fake_addr, inst) => {
+                eprintln!("{fake_addr:?} {inst}")
             }
         }
         text = rest;
@@ -67,10 +77,12 @@ pub fn parse(src: &str) -> ParseResult<(), EL> {
 
 pub enum AsmStmt {
     Section(String),
+    Align(u8),
     Label(String),
     Global(String),
-    Data(String,Data),
+    Data(String, Data),
     Inst(Inst),
+    LabelInst(LabelAddr, Inst),
 }
 
 fn parse_section_stmt<'a>(src: Text<'a>) -> ParseResult<Text<'a>, AsmStmt> {
@@ -78,7 +90,16 @@ fn parse_section_stmt<'a>(src: Text<'a>) -> ParseResult<Text<'a>, AsmStmt> {
     let (_, rest) = many(ws).parse(rest)?;
     let (name, rest) = section_name(rest)?;
 
-    Ok((AsmStmt::Section(name),rest))
+    Ok((AsmStmt::Section(name), rest))
+}
+
+fn parse_align_stmt(src: Text) -> ParseResult<Text, AsmStmt> {
+    let (_, rest) = lexeme(ws, keyworld("align")).parse(src)?;
+    let (_, rest) = many(ws).parse(rest)?;
+    let (num_str, rest) = parse_dex(rest)?;
+    let num = u8::from_str_radix(num_str.inner, 10).map_err(|_| ParseError::new(format!("wrong align set {num_str}")))?;
+
+    Ok((AsmStmt::Align(num), rest))
 }
 
 fn parse_label_stmt(src: Text) -> ParseResult<Text, AsmStmt> {
@@ -100,4 +121,8 @@ fn parse_data_stmt(src: Text) -> ParseResult<Text, AsmStmt> {
 
 fn parse_inst_stmt(src: Text) -> ParseResult<Text, AsmStmt> {
     parse_inst(src).map(|(x, rest)| (AsmStmt::Inst(x), rest))
+}
+
+fn parse_label_inst_stmt(src: Text) -> ParseResult<Text, AsmStmt> {
+    parse_inst_with_label_addr(src).map(|(x, rest)| (AsmStmt::LabelInst(x.0, x.1), rest))
 }

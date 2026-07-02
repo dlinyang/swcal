@@ -9,8 +9,19 @@ pub struct ParseError {
 
 impl ParseError {
     #[inline]
-    pub fn new(error: String) -> Self {
-        Self { errors: vec![error] }
+    pub fn new<T: ToString>(error: T) -> Self {
+        Self { errors: vec![error.to_string()] }
+    }
+}
+
+pub trait ParseErrorT {
+    fn merge(a: Self,b: Self) -> Self;
+}
+
+impl ParseErrorT for ParseError {
+    fn merge(mut a: Self, mut b: Self) -> Self {
+        a.errors.append(&mut b.errors);
+        a
     }
 }
 
@@ -26,8 +37,20 @@ pub trait ParsecT<I, T, E = ParseError> {
     fn parse(&self, input: I) -> ParseResult<I, T, E>;
 
     #[inline]
-    fn or(&self, g: impl ParsecT<I, T, E>) -> impl ParsecT<I, T, E> where I: Copy{
-        move |input| self.parse(input).or_else(|_| g.parse(input))
+    fn or(&self, g: impl ParsecT<I, T, E>) -> impl ParsecT<I, T, E>
+    where
+        I: Copy,
+        E: ParseErrorT
+    {
+        move |input| match self.parse(input) {
+            Ok(x) => Ok(x),
+            Err(err) => {
+                match g.parse(input) {
+                    Ok(x) => Ok(x),
+                    Err(other_err) => Err(ParseErrorT::merge(err, other_err)),
+                }
+            },
+        }
     }
 
     fn then<R>(&self, other: impl ParsecT<I, R, E>) -> impl ParsecT<I, R, E> {

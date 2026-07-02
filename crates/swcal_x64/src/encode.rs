@@ -28,13 +28,12 @@ pub fn encode(inst: &Inst, format: &InstFormat) -> Result<BinInst, String> {
             let mut has_ext_reg = false;
             match &inst.operand {
                 Operand::Zero => {}
-                Operand::Reg(reg) => {}
-                Operand::Imm(imm) => {}
-                Operand::ModRM(rm) => {}
-                Operand::Imm2Reg { reg, .. } => {
-                    if reg.is_extended() || reg.needs_rex() {
-                        has_ext_reg = true;
-                    }
+                Operand::Imm(_) => {}
+                Operand::RM(_) => {}
+                Operand::Imm2RM { rm, .. } => {
+                    // if reg.is_extended() || reg.needs_rex() {
+                    //     has_ext_reg = true;
+                    // }
                 }
                 Operand::Reg2RM { reg, rm } => {
                     if reg.is_extended() || reg.needs_rex() {
@@ -56,14 +55,8 @@ pub fn encode(inst: &Inst, format: &InstFormat) -> Result<BinInst, String> {
                         }
                     }
                 }
-                Operand::Reg2Reg { src_reg, dst_reg } => {
-                    if src_reg.is_extended() || src_reg.needs_rex() {
-                        has_ext_reg = true;
-                    }
-                    if dst_reg.is_extended() || dst_reg.needs_rex() {
-                        has_ext_reg = true;
-                    }
-                }
+                Operand::RmOpImm2reg { src, rm, imm } => {}
+
             }
             let _ = has_ext_reg;
         }
@@ -75,7 +68,7 @@ pub fn encode(inst: &Inst, format: &InstFormat) -> Result<BinInst, String> {
 
     // 3. 检查立即数宽度是否与操作码期望一致
     match &inst.operand {
-        Operand::Imm2Reg { imm, .. } => {
+        Operand::Imm2RM { imm, .. } => {
             let imm_size = imm_size(imm);
             if imm_size > (format.operand_size as usize / 8) {
                 return Err(format!(
@@ -102,10 +95,11 @@ pub fn encode(inst: &Inst, format: &InstFormat) -> Result<BinInst, String> {
             // 检查是否需要 REX.B (扩展寄存器，如 r8-r15)
             let has_ext_base = match &inst.operand {
                 Operand::Reg2RM { rm, .. } | Operand::RM2Reg { rm, .. } => {
-                    get_rm_base_reg(rm).map_or(false, |r| r.is_extended())
+                    // if let RM::Reg(reg) = rm {
+                        get_rm_base_reg(rm).map_or(false, |r| r.is_extended())
+                    // }
                 }
-                Operand::Reg2Reg { dst_reg, .. } => dst_reg.is_extended(),
-                Operand::Imm2Reg { reg, .. } => reg.is_extended(),
+                Operand::Imm2RM { rm, .. } => todo!(),
                 _ => false,
             };
             if has_ext_base {
@@ -114,8 +108,7 @@ pub fn encode(inst: &Inst, format: &InstFormat) -> Result<BinInst, String> {
 
             let has_ext_reg = match &inst.operand {
                 Operand::Reg2RM { reg, .. } | Operand::RM2Reg { reg, .. } => reg.is_extended(),
-                Operand::Reg2Reg { src_reg, .. } => src_reg.is_extended(),
-                Operand::Imm2Reg { reg, .. } => reg.is_extended(),
+                Operand::Imm2RM { rm, .. } => todo!(),
                 _ => false,
             };
             if has_ext_reg {
@@ -125,7 +118,7 @@ pub fn encode(inst: &Inst, format: &InstFormat) -> Result<BinInst, String> {
             // 检查 SIB index 寄存器扩展位
             let has_ext_index = match &inst.operand {
                 Operand::Reg2RM { rm, .. } | Operand::RM2Reg { rm, .. } => match rm {
-                    RM::AddrSIB(_, index, _) => index.is_extended(),
+                    RM::AddrSIB(_, _, index, _) => index.is_extended(),
                     _ => false,
                 },
                 _ => false,
@@ -158,20 +151,18 @@ pub fn encode(inst: &Inst, format: &InstFormat) -> Result<BinInst, String> {
         Operand::Zero => {
             // 无操作数，无需额外编码
         }
-        Operand::Reg(..) => {
-            todo!()
-        }
         Operand::Imm(..) => {
             todo!()
         }
-        Operand::ModRM(..) => {
+        Operand::RM(..) => {
             todo!()
         }
-        Operand::Imm2Reg { reg, imm } => {
+        Operand::Imm2RM { rm, imm } => {
             // 立即数到寄存器：opcode + ModRM
-            let modrm: u8 = 0b11_000_000 | (reg.id() << 3) | reg.id();
-            push_byte(&mut result, modrm);
-            encode_imm(&mut result, imm);
+            todo!()
+            // let modrm: u8 = 0b11_000_000 | (reg.id() << 3) | reg.id();
+            // push_byte(&mut result, modrm);
+            // encode_imm(&mut result, imm);
         }
         Operand::Reg2RM { reg, rm } => {
             // 寄存器到内存/寄存器：opcode + ModRM + [SIB] + [disp]
@@ -181,10 +172,8 @@ pub fn encode(inst: &Inst, format: &InstFormat) -> Result<BinInst, String> {
             // 内存/寄存器到寄存器：opcode + ModRM + [SIB] + [disp]
             encode_modrm_with_rm(&mut result, reg, rm);
         }
-        Operand::Reg2Reg { src_reg, dst_reg } => {
-            // 寄存器到寄存器：opcode + ModRM
-            let modrm: u8 = 0b11_000_000 | (src_reg.id() << 3) | dst_reg.id();
-            push_byte(&mut result, modrm);
+        Operand::RmOpImm2reg { src, rm, imm } => {
+
         }
     }
 
@@ -195,22 +184,22 @@ pub fn encode(inst: &Inst, format: &InstFormat) -> Result<BinInst, String> {
 fn operand_kind_from_inst(inst: &Inst) -> OperandKind {
     match &inst.operand {
         Operand::Zero => OperandKind::ZeroOprand,
-        Operand::Reg(..) => OperandKind::Reg,
         Operand::Imm(..) => OperandKind::Imm,
-        Operand::ModRM(..) => OperandKind::RM,
-        Operand::Imm2Reg { .. } => OperandKind::Reg2Imm,
+        Operand::RM(..) => OperandKind::RM,
+        Operand::Imm2RM { .. } => OperandKind::Imm2RM,
         Operand::Reg2RM { .. } => OperandKind::Reg2RM,
         Operand::RM2Reg { .. } => OperandKind::RM2Reg,
-        Operand::Reg2Reg { .. } => OperandKind::Reg2Reg,
+        Operand::RmOpImm2reg { .. } => OperandKind::RmOpImm2Reg,
     }
 }
 
 /// 从 RM 中获取基址寄存器（如果存在）
 fn get_rm_base_reg(rm: &RM) -> Option<Reg> {
     match rm {
-        RM::AddrReg(base) => Some(*base),
-        RM::AddrRegDisp(base, _) => Some(*base),
-        RM::AddrSIB(base, _, _) => Some(*base),
+        RM::Reg(_) => None,
+        RM::AddrReg(_, base) => Some(*base),
+        RM::AddrRegDisp(_, base, _) => Some(*base),
+        RM::AddrSIB(_, base, _, _) => Some(*base),
     }
 }
 
@@ -238,7 +227,8 @@ fn push_byte(result: &mut BinInst, byte: u8) {
 fn encode_modrm_with_rm(result: &mut BinInst, reg: &Reg, rm: &RM) {
     let reg_id = reg.id();
     match rm {
-        RM::AddrReg(base_reg) => {
+        RM::Reg(_) => {}
+        RM::AddrReg(_, base_reg) => {
             // [reg] 仅寄存器间接寻址
             let rm_id = base_reg.id();
             if *base_reg == Reg::RSP || *base_reg == Reg::R12 {
@@ -258,7 +248,7 @@ fn encode_modrm_with_rm(result: &mut BinInst, reg: &Reg, rm: &RM) {
                 push_byte(result, modrm);
             }
         }
-        RM::AddrRegDisp(base_reg, disp) => {
+        RM::AddrRegDisp(_, base_reg, disp) => {
             // [reg+disp]
             let rm_id = base_reg.id();
             let (mod_val, disp_bytes): (u8, Vec<u8>) = match disp {
@@ -322,7 +312,7 @@ fn encode_modrm_with_rm(result: &mut BinInst, reg: &Reg, rm: &RM) {
                 push_byte(result, b);
             }
         }
-        RM::AddrSIB(base, index, scale) => {
+        RM::AddrSIB(_, base, index, scale) => {
             // [base + index * scale]
             let base_id = base.id();
             let index_id = index.id();

@@ -10,7 +10,7 @@ pub struct TextPos {
 
 impl fmt::Display for TextPos {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "line: {}, col: {}", self.line + 1, self.col + 1)
+        write!(f, "{}:{}", self.line + 1, self.col + 1)
     }
 }
 
@@ -182,7 +182,7 @@ pub fn consume_pc<'a>(f: impl Fn(char) -> bool + Copy) -> impl ParsecT<Text<'a>,
 }
 
 pub fn newline<'a>(input: Text<'a>) -> ParseResult<Text<'a>, ()> {
-    char_pc('\n').parse(input).map(|(t, rest)| ((), rest))
+    char_pc('\n').parse(input).map(|(_, rest)| ((), rest))
 }
 
 #[inline]
