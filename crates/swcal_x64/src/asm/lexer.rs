@@ -72,6 +72,10 @@ pub fn mnemonic_name<'a>(src: Text<'a>) -> ParseResult<Text<'a>, Token<&'a str>>
     str_fn_pc(|x| x.find(|ch: char| !ch.is_ascii_alphabetic()).unwrap_or_default()).parse(src)
 }
 
+pub fn reg_name<'a>(src: Text<'a>) -> ParseResult<Text<'a>, Token<&'a str>> {
+    str_fn_pc(|x| x.find(|ch: char| !ch.is_ascii_alphabetic()).unwrap_or_default()).parse(src)
+}
+
 pub fn parse_comment<'a>(src: Text<'a>) -> ParseResult<Text<'a>, Token<&'a str>> {
     char_pc(';')
         .then(

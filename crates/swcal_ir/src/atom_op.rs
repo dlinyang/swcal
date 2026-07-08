@@ -51,3 +51,39 @@ pub enum AtomOp {
     /// Pointer to integer.
     PtrToInt,
 }
+use std::fmt;
+
+impl fmt::Display for AtomOp {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Add => write!(f, "add"),
+            Self::Sub => write!(f, "sub"),
+            Self::Mul => write!(f, "mul"),
+            Self::Div => write!(f, "div"),
+            Self::Rem => write!(f, "rem"),
+            Self::And => write!(f, "and"),
+            Self::Or => write!(f, "or"),
+            Self::Xor => write!(f, "xor"),
+            Self::Shl => write!(f, "shl"),
+            Self::Shr => write!(f, "shr"),
+            Self::Eq => write!(f, "eq"),
+            Self::Ne => write!(f, "ne"),
+            Self::Lt => write!(f, "lt"),
+            Self::Le => write!(f, "le"),
+            Self::Gt => write!(f, "gt"),
+            Self::Ge => write!(f, "ge"),
+            Self::Neg => write!(f, "neg"),
+            Self::Not => write!(f, "not"),
+            Self::ZExt => write!(f, "zext"),
+            Self::SExt => write!(f, "sext"),
+            Self::Trunc => write!(f, "trunc"),
+            Self::FpToSi => write!(f, "fptosi"),
+            Self::FpToUi => write!(f, "fptoui"),
+            Self::SiToFp => write!(f, "sitofp"),
+            Self::UiToFp => write!(f, "uitofp"),
+            Self::BitCast => write!(f, "bitcast"),
+            Self::IntToPtr => write!(f, "inttoptr"),
+            Self::PtrToInt => write!(f, "ptrtoint"),
+        }
+    }
+}

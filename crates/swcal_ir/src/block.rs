@@ -16,6 +16,20 @@ pub enum Value {
     Label(String),
 }
 
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Value::Var(name) => write!(f, "{}", name),
+            Value::ConstInt(val) => write!(f, "{}", val),
+            Value::ConstFloat(val) => write!(f, "{}", val),
+            Value::ConstBool(val) => write!(f, "{}", val),
+            Value::Label(name) => write!(f, "label {}", name),
+        }
+    }
+}
+
+
+
 /// A three-address code instruction.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Instr {
@@ -57,6 +71,62 @@ pub enum Instr {
         dest: String,
         incoming: Vec<(Value, String)>,
     },
+}
+
+use std::fmt;
+
+impl fmt::Display for Instr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Instr::Copy { dest, src } => write!(f, "{} = {}", dest, src),
+            Instr::Binary { dest, op, lhs, rhs } => write!(f, "{} = {} {} {}", dest, lhs, op, rhs),
+            Instr::Unary { dest, op, operand } => write!(f, "{} = {} {}", dest, op, operand),
+            Instr::Load { dest, ptr } => write!(f, "{} = load {}", dest, ptr),
+            Instr::Store { ptr, val } => write!(f, "store {}, {}", val, ptr),
+            Instr::Alloca { dest, ty } => write!(f, "{} = alloca {}", dest, ty),
+            Instr::Call { dest, func, args } => {
+                let args_str: Vec<String> = args.iter().map(|a| a.to_string()).collect();
+                match dest {
+                    Some(d) => write!(f, "{} = call {}({})", d, func, args_str.join(", ")),
+                    None => write!(f, "call {}({})", func, args_str.join(", ")),
+                }
+            }
+            Instr::Return(val) => match val {
+                Some(v) => write!(f, "return {}", v),
+                None => write!(f, "return"),
+            },
+            Instr::Jump { target, args } => {
+                let args_str: Vec<String> = args.iter().map(|a| a.to_string()).collect();
+                write!(f, "br {}({})", target, args_str.join(", "))
+            }
+            Instr::Branch {
+                cond,
+                then_target,
+                then_args,
+                else_target,
+                else_args,
+            } => {
+                let then_args_str: Vec<String> = then_args.iter().map(|a| a.to_string()).collect();
+                let else_args_str: Vec<String> = else_args.iter().map(|a| a.to_string()).collect();
+                write!(
+                    f,
+                    "br {}, {}({}), {}({})",
+                    cond,
+                    then_target,
+                    then_args_str.join(", "),
+                    else_target,
+                    else_args_str.join(", ")
+                )
+            }
+            Instr::Phi { dest, incoming } => {
+                let pairs: Vec<String> = incoming
+                    .iter()
+                    .map(|(val, label)| format!("({}, {})", val, label))
+                    .collect();
+                write!(f, "{} = phi [{}]", dest, pairs.join(", "))
+            }
+        }
+    }
 }
 
 /// A basic block: a sequence of instructions with a labelled entry and block parameters.

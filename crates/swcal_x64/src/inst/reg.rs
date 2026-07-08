@@ -1,114 +1,11 @@
-use std::sync::{Arc, LazyLock, RwLock};
-
-static X86_64_SYSTEM_MODE: LazyLock<Arc<RwLock<u8>>> = LazyLock::new( ||  Arc::new(RwLock::new(64))) ;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Imm {
-    Imm8(u8),
-    Imm16(u16),
-    Imm32(u32),
-    Imm64(u64),
-}
-
-impl std::fmt::Display for Imm {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Imm::Imm8(v) => write!(f, "byte {}", v),
-            Imm::Imm16(v) => write!(f, "word {}", v),
-            Imm::Imm32(v) => write!(f, "dword {}", v),
-            Imm::Imm64(v) => write!(f, "qword {}", v),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AddrWidth {
-    B8,
-    B16,
-    B32,
-    B64,
-}
-
-impl std::fmt::Display for AddrWidth {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            AddrWidth::B8 => write!(f, "byte"),
-            AddrWidth::B16 => write!(f, "word"),
-            AddrWidth::B32 => write!(f, "dword"),
-            AddrWidth::B64 => write!(f, "qword"),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RM {
-    Reg(Reg),
-    //w [Reg]
-    AddrReg(AddrWidth, Reg),
-    //width [Reg+disp]
-    AddrRegDisp(AddrWidth, Reg, Imm),
-    // ModRM,noModRM.rm == 100
-    //[base + index * scale]
-    AddrSIB(AddrWidth, Reg, Reg, u8),
-}
-
-impl std::fmt::Display for RM {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            RM::Reg(reg) => write!(f, "{}", reg),
-            RM::AddrReg(width, reg) => write!(f, "{width} [{reg}]"),
-            RM::AddrRegDisp(width, reg, imm) => write!(f, "{width} [{reg} + {imm}]"),
-            RM::AddrSIB(width, base, index, scale) => write!(f, "{width} [{base} + {index} * {scale}]"),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Operand {
-    Zero,
-    Imm(Imm),
-    RM(RM),
-    Imm2RM { rm: RM, imm: Imm },
-    Reg2RM { reg: Reg, rm: RM },
-    RM2Reg { reg: Reg, rm: RM },
-    RmOpImm2reg { src: Reg, rm: RM, imm: Imm}
-}
-
-impl std::fmt::Display for Operand {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Operand::Zero => write!(f, ""),
-            Operand::Imm(imm) => write!(f, "{}", imm),
-            Operand::RM(rm) => write!(f, "{}", rm),
-            Operand::Imm2RM { rm: reg, imm } => write!(f, "{}, {}", reg, imm),
-            Operand::Reg2RM { reg, rm } => write!(f, "{}, {}", reg, rm),
-            Operand::RM2Reg { reg, rm } => write!(f, "{}, {}", rm, reg),
-            Operand::RmOpImm2reg { src, rm, imm } => write!(f, "{}, {}, {}", src, rm, imm),
-        }
-    }
-}
-
-
-#[derive(Debug)]
-pub struct Inst {
-    pub mnemonic: String,
-    pub operand: Operand,
-}
-
-impl std::fmt::Display for Inst {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {}", self.mnemonic, self.operand)
-    }
-}
-
-/// x86_64 通用寄存器枚举
-/// 寄存器的编码格式：
-/// - 低 3 位 (bit 0-2): 寄存器在指令编码中的 id（寄存器编号 0-7）
-/// - 第 4 位 (bit 3): 是否为扩展寄存器 (R8-R15 系列)
-/// - 高 4 位 (bit 4-7): 寄存器类别（宽度等）
+/// x86_64 Register:
+///
+/// |7 ~ 5 |4| 3~0|
+/// |---|--|--|
+/// | kind  |e| reg |
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Reg {
-    // 8-bit 寄存器 - 低8位
+    // 8-bit reg
     AL = 0b0001_0_000 | 0,
     CL = 0b0001_0_000 | 1,
     DL = 0b0001_0_000 | 2,
@@ -127,7 +24,7 @@ pub enum Reg {
     R13B = 0b0001_1_000 | 5,
     R14B = 0b0001_1_000 | 6,
     R15B = 0b0001_1_000 | 7,
-    // 16-bit 寄存器
+    // 16-bit reg
     AX = 0b0010_0_000 | 0,
     CX = 0b0010_0_000 | 1,
     DX = 0b0010_0_000 | 2,
@@ -137,14 +34,14 @@ pub enum Reg {
     SI = 0b0010_0_000 | 6,
     DI = 0b0010_0_000 | 7,
     // 16-bit extende reg
-    R8D = 0b0010_1_000 | 0,
-    R9D = 0b0010_1_000 | 1,
-    R10D = 0b0010_1_000 | 2,
-    R11D = 0b0010_1_000 | 3,
-    R12D = 0b0010_1_000 | 4,
-    R13D = 0b0010_1_000 | 5,
-    R14D = 0b0010_1_000 | 6,
-    R15D = 0b0010_1_000 | 7,
+    R8W = 0b0010_1_000 | 0,
+    R9W = 0b0010_1_000 | 1,
+    R10W = 0b0010_1_000 | 2,
+    R11W = 0b0010_1_000 | 3,
+    R12W = 0b0010_1_000 | 4,
+    R13W = 0b0010_1_000 | 5,
+    R14W = 0b0010_1_000 | 6,
+    R15W = 0b0010_1_000 | 7,
     // 32-bit 寄存器
     EAX = 0b0011_0_000 | 0,
     ECX = 0b0011_0_000 | 1,
@@ -155,14 +52,14 @@ pub enum Reg {
     ESI = 0b0011_0_000 | 6,
     EDI = 0b0011_0_000 | 7,
     // 32-bit extend reg
-    R8W = 0b0011_1_000 | 0,
-    R9W = 0b0011_1_000 | 1,
-    R10W = 0b0011_1_000 | 2,
-    R11W = 0b0011_1_000 | 3,
-    R12W = 0b0011_1_000 | 4,
-    R13W = 0b0011_1_000 | 5,
-    R14W = 0b0011_1_000 | 6,
-    R15W = 0b0011_1_000 | 7,
+    R8D = 0b0011_1_000 | 0,
+    R9D = 0b0011_1_000 | 1,
+    R10D = 0b0011_1_000 | 2,
+    R11D = 0b0011_1_000 | 3,
+    R12D = 0b0011_1_000 | 4,
+    R13D = 0b0011_1_000 | 5,
+    R14D = 0b0011_1_000 | 6,
+    R15D = 0b0011_1_000 | 7,
     // 64-bit 寄存器
     RAX = 0b0100_0_000 | 0,
     RCX = 0b0100_0_000 | 1,
@@ -183,17 +80,17 @@ pub enum Reg {
     R15 = 0b0100_1_000 | 7,
 }
 
-/// 寄存器类别枚举（高4位编码）
+/// TODO: XMM and CR
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RegKind {
-    /// 8位低字节寄存器 (AL-DIL) 及扩展 (R8B-R15B)
-    R8 = 0b0001_0_000,
-    /// 16位寄存器 (AX-DI) 及扩展 (R8W-R15W)
-    R16 = 0b0010_0_000,
-    /// 32位寄存器 (EAX-EDI) 及扩展 (R8D-R15D)
-    R32 = 0b011_0_000,
-    /// 64位寄存器 (RAX-RDI) 及扩展 (R8-R15)
-    R64 = 0b0100_0_000,
+    /// general register 8bit
+    GR8  = 0b0001_0_000,
+    /// general register 16bit
+    GR16 = 0b0010_0_000,
+    /// general register 32bit
+    GR32 = 0b0011_0_000,
+    /// general register 64bit
+    GR64 = 0b0100_0_000,
 }
 
 /// 寄存器类别掩码（高4位）
@@ -213,10 +110,10 @@ impl Reg {
     pub fn kind(&self) -> RegKind {
         let val = (*self as u8) & REGKIND_MASK;
         match val {
-            x if x == RegKind::R8 as u8 => RegKind::R8,
-            x if x == RegKind::R16 as u8 => RegKind::R16,
-            x if x == RegKind::R32 as u8 => RegKind::R32,
-            _ => RegKind::R64,
+            x if x == RegKind::GR8 as u8 => RegKind::GR8,
+            x if x == RegKind::GR16 as u8 => RegKind::GR16,
+            x if x == RegKind::GR32 as u8 => RegKind::GR32,
+            _ => RegKind::GR64,
         }
     }
 
@@ -234,34 +131,16 @@ impl Reg {
         // SPL, BPL, SIL, DIL 也需要 REX（它们是 8L 类别中 id 为 4-7 的寄存器）
         let cat = self.kind();
         let id = self.id();
-        cat == RegKind::R8 && id >= 4
+        cat == RegKind::GR8 && id >= 4
     }
 
     /// 返回寄存器的宽度（字节数）
     pub fn width(&self) -> usize {
         match self.kind() {
-            RegKind::R8  => 1,
-            RegKind::R16 => 2,
-            RegKind::R32 => 4,
-            RegKind::R64 => 8,
-        }
-    }
-
-    pub fn bit_width(&self) -> AddrWidth {
-        match self.kind() {
-            RegKind::R8  => AddrWidth::B8,
-            RegKind::R16 => AddrWidth::B16,
-            RegKind::R32 => AddrWidth::B32,
-            RegKind::R64 => AddrWidth::B64,
-        }
-    }
-
-    pub fn zero_imm(&self) -> Imm {
-        match self.kind() {
-            RegKind::R8 => Imm::Imm8(0),
-            RegKind::R16 => Imm::Imm16(0),
-            RegKind::R32 => Imm::Imm32(0),
-            RegKind::R64 => Imm::Imm64(0),
+            RegKind::GR8  => 1,
+            RegKind::GR16 => 2,
+            RegKind::GR32 => 4,
+            RegKind::GR64 => 8,
         }
     }
 
@@ -270,12 +149,12 @@ impl Reg {
         let id = self.id();
         let cat = self.kind();
         // 已经是 8 位寄存器则返回 None
-        if cat == RegKind::R8 {
+        if cat == RegKind::GR8 {
             return None;
         }
         let is_ext = self.is_extended();
         match cat {
-            RegKind::R64 | RegKind::R32 | RegKind::R16 => {
+            RegKind::GR64 | RegKind::GR32 | RegKind::GR16 => {
                 if is_ext {
                     // 扩展寄存器的低8位
                     let extended = match id {

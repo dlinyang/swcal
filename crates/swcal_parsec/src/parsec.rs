@@ -10,12 +10,14 @@ pub struct ParseError {
 impl ParseError {
     #[inline]
     pub fn new<T: ToString>(error: T) -> Self {
-        Self { errors: vec![error.to_string()] }
+        Self {
+            errors: vec![error.to_string()],
+        }
     }
 }
 
 pub trait ParseErrorT {
-    fn merge(a: Self,b: Self) -> Self;
+    fn merge(a: Self, b: Self) -> Self;
 }
 
 impl ParseErrorT for ParseError {
@@ -40,16 +42,22 @@ pub trait ParsecT<I, T, E = ParseError> {
     fn or(&self, g: impl ParsecT<I, T, E>) -> impl ParsecT<I, T, E>
     where
         I: Copy,
-        E: ParseErrorT
+        E: ParseErrorT,
     {
         move |input| match self.parse(input) {
             Ok(x) => Ok(x),
-            Err(err) => {
-                match g.parse(input) {
-                    Ok(x) => Ok(x),
-                    Err(other_err) => Err(ParseErrorT::merge(err, other_err)),
-                }
+            Err(err) => match g.parse(input) {
+                Ok(x) => Ok(x),
+                Err(other_err) => Err(ParseErrorT::merge(err, other_err)),
             },
+        }
+    }
+
+    fn and<R>(&self, other: impl ParsecT<I, R, E>) -> impl ParsecT<I, (T, R), E> {
+        move |input| {
+            let (a, rest) = self.parse(input)?;
+            let (b, rest) = other.parse(rest)?;
+            Ok(((a, b), rest))
         }
     }
 
@@ -74,6 +82,17 @@ pub trait ParsecT<I, T, E = ParseError> {
             let (_, rest1) = other.parse(input)?;
             let (v2, rest2) = self.parse(rest1)?;
             Ok((v2, rest2))
+        }
+    }
+
+    #[inline]
+    fn optional(&self, input: I) -> (Option<T>, I)
+    where I: Copy
+    {
+        if let Ok((t, rest)) = self.parse(input) {
+            (Some(t), rest)
+        } else {
+            (None, input)
         }
     }
 }
@@ -101,7 +120,7 @@ pub fn lexeme<I: Copy, T, E>(
     }
 }
 
-pub fn between<I, T, E> (
+pub fn between<I, T, E>(
     left: impl ParsecT<I, T, E>,
     right: impl ParsecT<I, T, E>,
     inner: impl ParsecT<I, T, E>,
@@ -145,6 +164,15 @@ pub fn many<I: Copy, T, E>(f: impl ParsecT<I, T, E>) -> impl ParsecT<I, Vec<T>, 
             Ok((result, rest))
         }
         Err(e) => Err(e),
+    }
+}
+
+#[inline]
+pub fn optional<I: Copy, T, E>(f: impl ParsecT<I, T, E>, input: I) -> (Option<T>, I) {
+    if let Ok((t, rest)) = f.parse(input) {
+        (Some(t), rest)
+    } else {
+        (None, input)
     }
 }
 
