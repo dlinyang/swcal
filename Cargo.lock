@@ -19,4 +19,9 @@ name = "swcal_x64"
 version = "0.1.0"
 dependencies = [
  "swcal_parsec",
+ "swcal_x64_meta",
 ]
+
+[[package]]
+name = "swcal_x64_meta"
+version = "0.1.0"

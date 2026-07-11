@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::inst::{inst::Inst, format::*};
+use crate::format::*;
 
 pub mod mov;
 pub mod xchg;
@@ -18,14 +18,4 @@ pub fn inst_codegen_table() -> InstCodeGenTable {
     t.insert("sub".to_string(), sub::sub());
     t.insert("inc".to_string(), inc::inc());
     t
-}
-
-pub fn codgen_emit(inst: &Inst, codgen_table: &InstCodeGenTable) -> Vec<Result<BinInst, String>> {
-    let mut ret = vec![];
-    if let Some(inst_formats) = codgen_table.get(&inst.mnemonic) {
-        for gen_format in inst_formats {
-            ret.push(gen_format.encode(inst));
-        }
-    }
-    ret
 }

@@ -16,7 +16,7 @@ fn xchg_reg_reg_n(size: u8) -> InstFormat {
             snd: None,
             trd: None,
         },
-        encode_kind: EncodeKind::RegInOpcode(0),
+        encode_kind: EncodeKind::OpFixedReg(0),
         operand_size: size,
         operand_kind: OperandKind::RM2Reg,
     }

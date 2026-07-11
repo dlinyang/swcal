@@ -1,6 +1,6 @@
-use crate::inst::format::*;
+use crate::format::*;
 
-pub fn sub() -> Vec<InstFormat> {
+pub fn add() -> Vec<InstFormat> {
     vec![
         _rm2reg8(),
         _rm2reg_n(16),
@@ -11,10 +11,10 @@ pub fn sub() -> Vec<InstFormat> {
 
 fn _rm2reg8() -> InstFormat {
     InstFormat {
-        mnemonic: String::from("sub"),
+        mnemonic: String::from("add"),
         prefix: Prefix::Legacy,
         opcode: Opcode {
-            fst: 0x2a,
+            fst: 0x22,
             snd: None,
             trd: None,
         },
@@ -26,10 +26,10 @@ fn _rm2reg8() -> InstFormat {
 
 fn _rm2reg_n(size: u8) -> InstFormat {
     InstFormat {
-        mnemonic: String::from("sub"),
+        mnemonic: String::from("add"),
         prefix: Prefix::Legacy,
         opcode: Opcode {
-            fst: 0x2b,
+            fst: 0x23,
             snd: None,
             trd: None,
         },

@@ -1,4 +1,4 @@
-use crate::inst::format::*;
+use crate::format::*;
 
 pub fn inc() -> Vec<InstFormat> {
     vec![
@@ -18,7 +18,7 @@ fn _rm2reg8() -> InstFormat {
             snd: None,
             trd: None,
         },
-        encode_kind: EncodeKind::Digit(0),
+        encode_kind: EncodeKind::RegExtOp(0),
         operand_size: 8,
         operand_kind: OperandKind::RM2Reg,
     }
@@ -33,7 +33,7 @@ fn _rm2reg_n(size: u8) -> InstFormat {
             snd: None,
             trd: None,
         },
-        encode_kind: EncodeKind::Digit(0),
+        encode_kind: EncodeKind::RegExtOp(0),
         operand_size: size,
         operand_kind: OperandKind::RM,
     }

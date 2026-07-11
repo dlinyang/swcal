@@ -1,53 +1,9 @@
 use super::reg::*;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Imm {
-    Imm8(u8),
-    Imm16(u16),
-    Imm32(u32),
-    Imm64(u64),
-}
-
-impl Imm {
-    pub fn imm_size(&self) -> usize {
-        match self {
-            Imm::Imm8(_) => 1,
-            Imm::Imm16(_) => 2,
-            Imm::Imm32(_) => 4,
-            Imm::Imm64(_) => 8,
-        }
-    }
-
-    pub fn need_extend(&self) -> bool {
-        self.imm_size() == 8
-    }
-}
-
-impl std::fmt::Display for Imm {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Imm::Imm8(v) => write!(f, "byte {}", v),
-            Imm::Imm16(v) => write!(f, "word {}", v),
-            Imm::Imm32(v) => write!(f, "dword {}", v),
-            Imm::Imm64(v) => write!(f, "qword {}", v),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Disp {
-    Disp8(i8),
-    Disp32(i32),
-}
-
-impl std::fmt::Display for Disp {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Disp::Disp8(v) => write!(f, "disp8 {}", v),
-            Disp::Disp32(v) => write!(f, "disp32 {}", v),
-        }
-    }
-}
+use super::rex::*;
+use super::imm::*;
+use super::disp::*;
+use super::mem::*;
+use super::encode::*;
 
 /// ModRM.mod field encoding
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -74,12 +30,20 @@ pub fn gen_modrm(mode: u8, reg: u8, rm: u8) -> u8 {
 }
 
 #[inline]
-pub fn gen_sib(scale: u8, index: u8, base: u8) -> u8 {
+pub fn gen_sib(base: u8, index: u8, scale: u8) -> u8 {
     (scale & 0b11) << 6 | (index & 0b111) << 3 | base & 0b111
 }
 
 impl ModRM {
-    pub fn new(byte: u8) -> Self {
+    pub fn new() -> Self {
+        Self {
+            mode: 0,
+            reg: 0,
+            rm: 0,
+        }
+    }
+
+    pub fn from_byte(byte: u8) -> Self {
         ModRM {
             mode: (byte >> 6) & 0b11,
             reg: (byte >> 3) & 0b111,
@@ -87,57 +51,12 @@ impl ModRM {
         }
     }
 
-    pub fn encode(&self) -> u8 {
+    pub fn byte(&self) -> u8 {
         (self.mode << 6) | (self.reg << 3) | self.rm
     }
-}
 
-/// width \[reg + (index * scale)? + (disp)?\]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Mem {
-    /// width-byte
-    pub width: u8,
-    pub reg: Reg,
-    pub sib_opt: Option<(Reg, u8)>,
-    pub disp_opt: Option<Disp>,
-}
-
-impl Mem {
-    pub fn is_extend(&self) -> bool {
-        self.reg.is_extended()
-    }
-
-    pub fn need_rex(&self) -> bool {
-        self.reg.needs_rex()
-    }
-
-    pub fn check_reg_valid(&self) -> bool {
-        if let Some((index, _)) = self.sib_opt {
-            index.is_extended() == self.reg.is_extended()
-        } else {
-            true
-        }
-    }
-}
-
-impl std::fmt::Display for Mem {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.width {
-            1 => write!(f, "byte")?,
-            2 => write!(f, "word")?,
-            4 => write!(f, "dword")?,
-            8 => write!(f, "qword")?,
-            _ => write!(f, "{}bit", self.width * 8)?,
-        }
-        write!(f, " [")?;
-        write!(f, "{}", self.reg)?;
-        if let Some((index, scale)) = self.sib_opt {
-            write!(f, "+{index}*{scale}")?;
-        }
-        if let Some(disp) = self.disp_opt {
-            write!(f, "+{disp}")?;
-        }
-        write!(f, "]")
+    pub fn encode(&self, buf: &mut impl CodeSink) {
+        buf.putb(self.byte());
     }
 }
 
@@ -158,12 +77,267 @@ impl std::fmt::Display for Operand {
     }
 }
 
+impl Operand {
+    pub fn width(&self) -> u8 {
+        match self {
+            Operand::Reg(reg) => reg.width(),
+            Operand::Mem(mem) => mem.width,
+            Operand::Imm(imm) => imm.width(),
+        }
+    }
+
+    pub fn is_rm(&self) -> bool {
+        match self {
+            Operand::Mem(_) | Operand::Reg(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_reg(&self) -> bool {
+        match self {
+            Operand::Reg(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_imm(&self) -> bool {
+        match self {
+            Operand::Imm(_) => true,
+            _ => false,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Inst {
     pub mnemonic: String,
     pub dst: Option<Operand>,
     pub src: Option<Operand>,
     pub src_ext: Option<Operand>,
+}
+
+#[inline]
+pub fn operand_is_rm(operand_opt: &Option<Operand>) -> bool {
+    operand_opt.is_some_and(|x| x.is_rm())
+}
+
+#[inline]
+pub fn operand_is_reg(operand_opt: &Option<Operand>) -> bool {
+    operand_opt.is_some_and(|x| x.is_reg())
+}
+
+#[inline]
+pub fn operand_is_imm(operand_opt: &Option<Operand>) -> bool {
+    operand_opt.is_some_and(|x| x.is_imm())
+}
+
+impl Inst {
+    pub fn width_validate<const I: u8>(&self) -> Result<(), String> {
+        if let Some(src) = self.src {
+            if src.width() == I {
+                Ok(())
+            }
+            else {
+                Err(format!("unmatched with {} {}", I, self))
+            }
+        }
+        else if let Some(dst) = self.dst {
+            if dst.width() == I {
+                Ok(())
+            }
+            else {
+                Err(format!("unmatched with {} {}", I, self))
+            }
+        }
+        else {
+            Ok(())
+        }
+    }
+
+    /// Encode x86-64 legacy prefixes (REX, segment overrides, operand size, address size)
+    pub fn encode_prefix_lagecy(&self, buf: &mut impl CodeSink) -> Result<(), String> {
+        // TODO: Additional prefix handling could be added here for:
+        // - Segment overrides (CS, DS, ES, FS, GS, SS) - 0x2E, 0x3E, 0x26, 0x64, 0x65, 0x36
+        // - Address size override (0x67)
+        // - Lock prefix (0xF0)
+        // - REP/REPNE prefixes (0xF3, 0xF2)
+
+        // Operand size override (0x66)
+        if let Some(dst) = self.dst {
+            if dst.width() == 2 {
+                buf.putb(0x66);
+            }
+        }
+
+        // Rex Prefix
+        let mut rex = Rex::new();
+
+        // Check operands for REX requirements
+        match self.dst {
+            Some(Operand::Reg(reg)) => {
+                rex.w = reg.is_w64();
+                rex.r = reg.is_extended();
+            }
+            Some(Operand::Mem(mem)) => {
+                if let Some((index, _)) = mem.sib_opt {
+                    rex.x = index.is_extended()
+                } else {
+                    rex.b = mem.reg.is_extended();
+                }
+            }
+            _ => {
+                return Err(format!("wrong dst type {}", self));
+            }
+        }
+
+        match self.src {
+            Some(Operand::Reg(reg)) => {
+                rex.w = reg.is_w64();
+                rex.r = reg.is_extended();
+            }
+            Some(Operand::Mem(mem)) => {
+                if let Some((index, _)) = mem.sib_opt {
+                    rex.x = index.is_extended()
+                } else {
+                    rex.b = mem.reg.is_extended();
+                }
+            }
+            Some(Operand::Imm(imm)) => {
+                rex.w = imm.width() == 8;
+            }
+            _ => {}
+        }
+
+        if rex.need() {
+            buf.putb(rex.byte());
+        }
+
+        Ok(())
+    }
+
+    pub fn encode_modrm(&self, buf: &mut impl CodeSink) -> Result<(), String> {
+        if let Some(dst) = self.dst && let Some(src) = self.src {
+            match (dst, src) {
+                (Operand::Reg(dst), Operand::Reg(src)) => {
+                    let mut modrm = ModRM::new();
+                    modrm.mode = ModRMMode::Reg as u8;
+                    modrm.reg = dst.id();
+                    modrm.rm = src.id();
+                    modrm.encode(buf);
+                    Ok(())
+                }
+                (Operand::Reg(reg), Operand::Mem(mem)) | (Operand::Mem(mem), Operand::Reg(reg)) => {
+                    let mut modrm = ModRM::new();
+                    // modrm.mode
+                    let mode = match mem.disp_opt {
+                            Some(Disp::Disp8(_)) => ModRMMode::Disp8,
+                            Some(Disp::Disp32(_)) => ModRMMode::Disp32,
+                            None => ModRMMode::Mem
+                    };
+                    modrm.mode = mode as u8;
+
+                    // modrm.reg
+                    modrm.reg = reg.id();
+
+                    // modrm.rm
+                    if let Some((index, scale)) = &mem.sib_opt {
+                        modrm.rm = Reg::RSP.id();
+                        modrm.encode(buf);
+                        buf.putb(gen_sib(mem.reg.id(), index.id(), *scale));
+                    }
+                    else {
+                        modrm.mode = ModRMMode::Mem as u8;
+                        modrm.rm = mem.reg.id();
+                        modrm.encode(buf);
+                    }
+
+                    // disp
+                    match mem.disp_opt {
+                        Some(disp) => disp.encode(buf),
+                        None => {},
+                    }
+
+                    Ok(())
+                }
+                _ => Err(format!("wrong operand type {}", self)),
+            }
+        } else {
+            Err(format!("instruction wrong operand parameter {}", self))
+        }
+    }
+
+    pub fn encode_modrm_reg_ext_op<const I: u8>(&self, buf: &mut impl CodeSink) -> Result<(), String> {
+        if let Some(dst) = self.dst && let Some(src) = self.src {
+            match (dst, src) {
+                (Operand::Reg(dst), Operand::Imm(src)) => {
+                    let mut modrm = ModRM::new();
+                    modrm.mode = ModRMMode::Reg as u8;
+                    modrm.reg = I;
+                    modrm.rm = dst.id();
+                    modrm.encode(buf);
+                    src.encode(buf);
+                    Ok(())
+                },
+                (Operand::Mem(dst), Operand::Imm(src)) => {
+                    let mut modrm = ModRM::new();
+                    // modrm.mode
+                    let mode = match dst.disp_opt {
+                            Some(Disp::Disp8(_)) => ModRMMode::Disp8,
+                            Some(Disp::Disp32(_)) => ModRMMode::Disp32,
+                            None => ModRMMode::Mem
+                    };
+                    modrm.mode = mode as u8;
+
+                    //modrm.reg
+                    modrm.reg = I;
+
+                    // modrm.rm
+                    if let Some((index, scale)) = &dst.sib_opt {
+                        modrm.rm = Reg::RSP.id();
+                        modrm.encode(buf);
+                        buf.putb(gen_sib(dst.reg.id(), index.id(), *scale));
+                    }
+                    else {
+                        modrm.mode = ModRMMode::Mem as u8;
+                        modrm.rm = dst.reg.id();
+                        modrm.encode(buf);
+                    }
+
+                    // disp
+                    match dst.disp_opt {
+                        Some(disp) => disp.encode(buf),
+                        None => {},
+                    }
+
+                    modrm.encode(buf);
+                    src.encode(buf);
+                    Ok(())
+                },
+                _ => Err(format!("wrong operand type {}", self)),
+            }
+        }
+        else {
+            Err(format!("instruction wrong operand parameter {}", self))
+        }
+    }
+
+    pub fn encode_reg_enc_op(&self, buf: &mut impl CodeSink) -> Result<(), String> {
+        if let Some(dst) = self.dst && let Some(src) = self.src {
+            match (dst, src) {
+                (Operand::Reg(dst), Operand::Imm(src)) => {
+                    buf.modify(|op| {
+                        *op = *op | (dst.id() & 0b111);
+                    });
+                    src.encode(buf);
+                    Ok(())
+                }
+                _ => Err(format!("wrong operand type {}", self)),
+            }
+        }
+        else {
+            Err(format!("instruction wrong operand parameter {}", self))
+        }
+    }
 }
 
 impl std::fmt::Display for Inst {

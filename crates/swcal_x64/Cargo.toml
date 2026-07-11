@@ -5,3 +5,6 @@ edition = "2024"
 
 [dependencies]
 swcal_parsec = { workspace = true }
+
+[build-dependencies]
+swcal_x64_meta = { path = "meta" }

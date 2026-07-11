@@ -117,25 +117,18 @@ impl Reg {
         }
     }
 
-    /// 是否为扩展寄存器 (R8-R15 系列)
+    /// check exetend register
     pub fn is_extended(&self) -> bool {
         ((*self as u8) & REG_EXT_MASK) != 0
     }
 
-    /// 返回寄存器是否需要 REX 前缀
-    pub fn needs_rex(&self) -> bool {
-        // 扩展寄存器 (R8-R15 任何宽度) 需要 REX
-        if self.is_extended() {
-            return true;
-        }
-        // SPL, BPL, SIL, DIL 也需要 REX（它们是 8L 类别中 id 为 4-7 的寄存器）
-        let cat = self.kind();
-        let id = self.id();
-        cat == RegKind::GR8 && id >= 4
+    /// check 64bit mode for REX.w
+    pub fn is_w64(&self) -> bool {
+        self.kind() == RegKind::GR64
     }
 
     /// 返回寄存器的宽度（字节数）
-    pub fn width(&self) -> usize {
+    pub fn width(&self) -> u8 {
         match self.kind() {
             RegKind::GR8  => 1,
             RegKind::GR16 => 2,

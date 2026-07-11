@@ -14,8 +14,6 @@ pub fn parse(src: &str) -> ParseResult<(), EL> {
     while text.inner.len() > 0 {
         let (_, rest) = many0(empty_line.or(ws_or_comment)).parse(text)?;
 
-        // eprint!("stmt start {} {} => ", "crates/swcal_x64/tests/test_asm.asm", rest.text_pos);
-
         let line_end = |input| {
             choice!(
                 lexeme(ws, newline_or_end),
@@ -31,7 +29,6 @@ pub fn parse(src: &str) -> ParseResult<(), EL> {
             parse_global_stmt.terminated(line_end),
             parse_data_stmt.terminated(line_end),
             parse_inst_stmt.terminated(line_end)
-            // parse_label_inst_stmt.terminated(line_end)
         )
         .parse(rest)?;
 
@@ -47,24 +44,19 @@ pub fn parse(src: &str) -> ParseResult<(), EL> {
                 }
             }
             AsmStmt::Align(align) => {
-                // eprintln!("algin {align}");
                 section.data.push(Data::Align(align));
             }
             AsmStmt::Label(name) => {
-                // eprintln!("{name}:");
                 section.labels.push((name, section.data.len()));
             }
             AsmStmt::Global(name) => {
-                // eprintln!("global {name}");
                 el.globals.push(name);
             }
             AsmStmt::Data(name, data) => {
-                // eprintln!("{name} {data:?}");
                 section.labels.push((name, section.data.len()));
                 section.data.push(data);
             }
             AsmStmt::Inst{inst, label} => {
-                // eprintln!("{inst}");
                 section.data.push(Data::Inst(inst));
                 if let Some(_label) = label {
                     // section.labels.push(label);
@@ -125,12 +117,3 @@ fn parse_data_stmt(src: Text) -> ParseResult<Text, AsmStmt> {
 fn parse_inst_stmt(src: Text) -> ParseResult<Text, AsmStmt> {
     parse_inst_label_opt(src).map(|((label, inst),rest)| (AsmStmt::Inst { inst, label }, rest))
 }
-
-// fn parse_inst_stmt(src: Text) -> ParseResult<Text, AsmStmt> {
-//     parse_inst(src).map(|(x, rest)| (AsmStmt::Inst(x), rest))
-// }
-
-// fn parse_label_inst_stmt(src: Text) -> ParseResult<Text, AsmStmt> {
-//     todo!()
-//     // parse_inst_with_label_addr(src).map(|(x, rest)| (AsmStmt::LabelInst(x.0, x.1), rest))
-// }

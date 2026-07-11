@@ -1,8 +1,7 @@
 use crate::asm::data::*;
 use crate::asm::lexer::*;
-// use crate::asm::parser::parse;
 use crate::inst::inst::*;
-use crate::inst::reg::*;
+use crate::inst::{reg::*, mem::*, disp::*, imm::*};
 use std::str::FromStr;
 use swcal_parsec::choice;
 use swcal_parsec::parsec::*;
@@ -41,6 +40,14 @@ pub fn parse_inst_label_opt(src: Text) -> ParseResult<Text, (Option<Label>, Inst
         (None, None)
     };
 
+    // TODO: fix label's mem access's width
+    let (dst, src, src_ext) = match (dlabel, slabel, selabel) {
+        (None, None, Some(label)) => {todo!()},
+        (None, Some(label), None) => {todo!()},
+        (Some(label), None, None) => {todo!()},
+        _ => (None, None, None),
+    };
+
     let label = match (dlabel, slabel, selabel) {
         (None, None, None) => None,
         (None, None, Some(label)) => Some(label),
@@ -59,27 +66,6 @@ pub fn parse_inst_label_opt(src: Text) -> ParseResult<Text, (Option<Label>, Inst
                 src_ext,
             },
         ),
-        rest,
-    ))
-}
-
-/// Note: this is not fast way to impl parse inst
-pub fn parse_inst(src: Text) -> ParseResult<Text, Inst> {
-    let (mnemonic_tok, rest) = lexeme(ws, mnemonic_name).terminated(ws).parse(src)?;
-    let (dst, rest) = parse_operand
-        .terminated(lexeme(ws, char_pc(',')))
-        .optional(rest);
-    let (src, rest) = parse_operand.optional(rest);
-    let (src_ext, rest) = parse_operand
-        .preceded(lexeme(ws, char_pc(',')))
-        .optional(rest);
-    Ok((
-        Inst {
-            mnemonic: mnemonic_tok.inner.to_string(),
-            dst,
-            src,
-            src_ext,
-        },
         rest,
     ))
 }
