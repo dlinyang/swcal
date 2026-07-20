@@ -11,17 +11,18 @@ name = "swcal_ir"
 version = "0.1.0"
 
 [[package]]
-name = "swcal_parsec"
-version = "0.1.0"
-
-[[package]]
 name = "swcal_x64"
 version = "0.1.0"
 dependencies = [
- "swcal_parsec",
  "swcal_x64_meta",
+ "tinyparsec",
 ]
 
 [[package]]
 name = "swcal_x64_meta"
 version = "0.1.0"
+
+[[package]]
+name = "tinyparsec"
+version = "0.1.0"
+source = "git+https://github.com/dlinyang/tinyparsec#f6c01001986c0ab8648f66e1c280a17beeda2902"

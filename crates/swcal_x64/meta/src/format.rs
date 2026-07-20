@@ -1,149 +1,47 @@
-use std::fmt;
+use crate::{generate::*, type_name};
 
-#[derive(Debug)]
-pub enum Prefix {
-    Legacy,
-    EvexVex,
+pub mod prefix;
+pub use prefix::*;
+pub mod opcode;
+pub use opcode::*;
+pub mod operand;
+pub use operand::*;
+pub mod modrm;
+pub use modrm::*;
+
+pub struct Encode {
+    pub modrm: ModRMKind,
+    pub operand: OperandEncode,
 }
 
-impl fmt::Display for Prefix {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Prefix::Legacy => write!(f, "Legacy"),
-            Prefix::EvexVex => write!(f, "EvexVex"),
-        }
+impl std::fmt::Display for Encode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:<6} {}", self.modrm, self.operand)
     }
 }
 
-#[derive(Debug)]
-pub struct Opcode {
-    pub fst: u8,
-    pub snd: Option<u8>,
-    pub trd: Option<u8>,
+pub fn encode(modrm: ModRMKind, operand: OperandEncode) -> Encode {
+    Encode { modrm, operand }
 }
 
-#[macro_export]
-macro_rules! opcode {
-    ($p1:expr) => {
-        Opcode {
-            fst: $p1,
-            snd: None,
-            trd: None,
-        }
-    };
-    ($p1:expr, $p2: expr) => {
-        Opcode {
-            fst: $p1,
-            snd: Some($p2),
-            trd: None,
-        }
-    };
-    ($p1:expr, $p2: expr, $p3: expr) => {
-        Opcode {
-            fst: $p1,
-            snd: Some($p2),
-            trd: Some($p3),
-        }
-    };
-}
+impl SrcGen for Encode {
+    fn var_name(&self) -> String {
+        todo!()
+    }
 
-impl fmt::Display for Opcode {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:02x}", self.fst)?;
-        if let Some(snd) = self.snd {
-            write!(f, " {:02x}", snd)?;
-        }
-        if let Some(trd) = self.trd {
-            write!(f, " {:02x}", trd)?;
-        }
-        Ok(())
+    fn type_name(&self) -> String {
+        type_name!(self.operand, self.modrm)
+    }
+
+    fn lit_name(&self) -> String {
+        todo!()
     }
 }
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum OperandKind {
-    NoOperand,
-    // Reg,
-    // Imm,
-    RM,
-    // dst = src op dst
-    Imm2RM,
-    Reg2RM,
-    RM2Reg,
-    Reg2Reg,
-    // tac
-    // RMOpImm2Reg,
-    // RMOpRM2Reg,
-    // RMOpReg2Reg,
-}
-
-impl fmt::Display for OperandKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            OperandKind::NoOperand => write!(f, "No"),
-            // OperandKind::Reg => write!(f, "r"),
-            // OperandKind::Imm => write!(f, "i"),
-            OperandKind::RM => write!(f, "rm"),
-            // OperandKind::Imm => write!(f, "i2r"),
-            OperandKind::Imm2RM => write!(f, "i2rm"),
-            OperandKind::Reg2RM => write!(f, "r2rm"),
-            OperandKind::RM2Reg => write!(f, "rm2r"),
-            OperandKind::Reg2Reg => write!(f, "r2r"),
-            // OperandKind::MemOpImm2Reg => write!(f, "mi2r"),
-            // OperandKind::RegOpImm2Reg => write!(f, "ri2r"),
-            // OperandKind::RegOpReg2Reg => write!(f, "rr2r"),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum EncodeKind {
-    // opcode /r ModRM
-    ModRM,
-    // IMM,
-    // op /n in ModRM
-    RegExtOp(u8),
-    // op +r
-    RegEncOp,
-    // op fixed_reg ...
-    OpFixedReg(u8),
-}
-
-impl Default for EncodeKind {
-    fn default() -> Self {
-        EncodeKind::ModRM
-    }
-}
-
-impl fmt::Display for EncodeKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            EncodeKind::ModRM => write!(f, "/r"),
-            EncodeKind::RegExtOp(n) => write!(f, "/{}", n),
-            EncodeKind::RegEncOp => write!(f, "+r"),
-            EncodeKind::OpFixedReg(n) => write!(f, "r{}", n),
-        }
-    }
-}
-
-impl Into<String> for EncodeKind {
-    fn into(self) -> String {
-        match self {
-            EncodeKind::ModRM => "modrm".to_string(),
-            EncodeKind::RegExtOp(n) => format!("ext_op_r{}", n),
-            EncodeKind::RegEncOp => "enc_r_op".to_string(),
-            EncodeKind::OpFixedReg(n) => format!("fixed_r{}", n),
-        }
-    }
-}
-
 pub struct InstFormat {
     pub mnemonic: String,
     pub prefix: Prefix,
     pub opcode: Opcode,
-    pub encode_kind: EncodeKind,
-    pub operand_size: u8,
-    pub operand_kind: OperandKind,
+    pub encode: Encode,
 }
 
 impl InstFormat {
@@ -152,43 +50,66 @@ impl InstFormat {
         mnemonic: impl Into<String>,
         prefix: Prefix,
         opcode: Opcode,
-        encode_kind: EncodeKind,
-        // byte width
-        operand_size: u8,
-        operand_kind: OperandKind,
+        encode: Encode,
     ) -> Self {
         Self {
             mnemonic: mnemonic.into(),
             prefix,
             opcode,
-            encode_kind,
-            operand_size,
-            operand_kind,
+            encode,
         }
     }
+}
 
-    pub fn name(&self) -> String {
-        format!(
-            "{}_{}_{}_{}",
+#[macro_export]
+macro_rules! instf {
+    ($mnemonic: expr, $prefix: expr, $opcode: expr, $modrm: expr) => {
+        InstFormat::new($mnemonic, $prefix, $opcode, encode($modrm, operand!()))
+    };
+    ($mnemonic: expr, $prefix: expr, $opcode: expr, $modrm: expr, $ope: expr) => {
+        InstFormat::new($mnemonic, $prefix, $opcode, encode($modrm, operand!($ope)))
+    };
+    ($mnemonic: expr, $prefix: expr, $opcode: expr, $modrm: expr, $dst: expr, $src: expr) => {
+        InstFormat::new($mnemonic, $prefix, $opcode, encode($modrm, operand!($dst, $src)))
+    };
+    ($mnemonic: expr, $prefix: expr, $opcode: expr, $modrm: expr, $dst: expr, $src: expr, $src_other: expr) => {
+        InstFormat::new($mnemonic, $prefix, $opcode, encode($modrm, operand!($dst, $src, $src_other)))
+    };
+}
+
+impl std::fmt::Display for InstFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{:<7} {:<8} {:<} {}",
             self.mnemonic,
-            self.operand_kind,
-            self.operand_size,
-            Into::<String>::into(self.encode_kind)
+            self.opcode,
+            self.encode,
+            self.prefix,
         )
     }
 }
 
-impl fmt::Display for InstFormat {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "InstFormat( mnemonic: {}, prefix: {}, opcode: {}, encode_kind: {:?}, operand_size: {}, operand_kind: {} )",
-            self.mnemonic,
-            self.prefix,
-            self.opcode,
-            self.encode_kind,
-            self.operand_size,
-            self.operand_kind
+impl SrcGen for InstFormat {
+    fn var_name(&self) -> String {
+        todo!()
+    }
+
+    fn type_name(&self) -> String {
+        format!(
+            "{}{}",
+            self.mnemonic.to_uppercase(),
+            self.encode.type_name(),
         )
+    }
+
+    fn lit_name(&self) -> String {
+        todo!()
+    }
+}
+
+impl Validation for InstFormat {
+    fn validation(&self) -> String {
+        todo!()
     }
 }

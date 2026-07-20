@@ -1,6 +1,6 @@
-use swcal_parsec::*;
-use swcal_parsec::parsec::*;
-use swcal_parsec::text::*;
+use tinyparsec::*;
+use tinyparsec::parsec::*;
+use tinyparsec::text::*;
 
 #[inline]
 pub fn newline_or_end<'a>(src: Text<'a>) -> ParseResult<Text<'a>, ()> {

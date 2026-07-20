@@ -1,8 +1,8 @@
 use crate::el::Data;
 use crate::asm::lexer::*;
-use swcal_parsec::parsec::*;
-use swcal_parsec::text::*;
-use swcal_parsec::*;
+use tinyparsec::parsec::*;
+use tinyparsec::text::*;
+use tinyparsec::*;
 
 pub fn parse_data<'a>(src: Text<'a>) -> ParseResult<Text<'a>, Token<(String, Data)>> {
     let (name, rest) = lexeme(ws, db_name).parse(src)?;

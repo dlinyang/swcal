@@ -2,10 +2,10 @@ use crate::asm::data::*;
 use crate::asm::inst::*;
 use crate::asm::lexer::*;
 use crate::el::*;
-use crate::inst::inst::Inst;
-use swcal_parsec::parsec::*;
-use swcal_parsec::text::*;
-use swcal_parsec::*;
+use crate::inst::Inst;
+use tinyparsec::parsec::*;
+use tinyparsec::text::*;
+use tinyparsec::*;
 
 pub fn parse(src: &str) -> ParseResult<(), EL> {
     let mut text = Text::new(src, Default::default());

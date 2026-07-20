@@ -1,11 +1,10 @@
 use crate::asm::data::*;
 use crate::asm::lexer::*;
-use crate::inst::inst::*;
-use crate::inst::{reg::*, mem::*, disp::*, imm::*};
+use crate::inst::{*, operand::*, reg::*, mem::*, disp::*, imm::*};
 use std::str::FromStr;
-use swcal_parsec::choice;
-use swcal_parsec::parsec::*;
-use swcal_parsec::text::*;
+use tinyparsec::choice;
+use tinyparsec::parsec::*;
+use tinyparsec::text::*;
 
 /// Note: this is not fast way to impl parse inst
 pub fn parse_inst_label_opt(src: Text) -> ParseResult<Text, (Option<Label>, Inst)> {
@@ -40,13 +39,13 @@ pub fn parse_inst_label_opt(src: Text) -> ParseResult<Text, (Option<Label>, Inst
         (None, None)
     };
 
-    // TODO: fix label's mem access's width
-    let (dst, src, src_ext) = match (dlabel, slabel, selabel) {
-        (None, None, Some(label)) => {todo!()},
-        (None, Some(label), None) => {todo!()},
-        (Some(label), None, None) => {todo!()},
-        _ => (None, None, None),
-    };
+    // // TODO: fix label's mem access's width
+    // let (dst, src, src_ext) = match (dlabel, slabel, selabel) {
+    //     (None, None, Some(label)) => {todo!()},
+    //     (None, Some(label), None) => {todo!()},
+    //     (Some(label), None, None) => {todo!()},
+    //     _ => (None, None, None),
+    // };
 
     let label = match (dlabel, slabel, selabel) {
         (None, None, None) => None,

@@ -6,6 +6,3 @@ edition = "2024"
 [workspace]
 resolver = "2"
 members = ["crates/*"]
-
-[workspace.dependencies]
-swcal_parsec = { path = "crates/swcal_parsec" }

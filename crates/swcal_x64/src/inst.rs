@@ -1,112 +1,19 @@
-use super::reg::*;
-use super::rex::*;
-use super::imm::*;
-use super::disp::*;
-use super::mem::*;
-use super::encode::*;
+pub mod encode;
+pub mod rex;
+pub mod vex;
+pub mod operand;
+pub mod reg;
+pub mod mem;
+pub mod imm;
+pub mod disp;
+pub mod modrm;
 
-/// ModRM.mod field encoding
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ModRMMode {
-    /// [register] - direct memory, no displacement
-    Mem = 0b00,
-    /// [register + disp8] - memory with 8-bit displacement
-    Disp8 = 0b01,
-    /// [register + disp32] - memory with 32-bit displacement
-    Disp32 = 0b10,
-    /// register (not memory)
-    Reg = 0b11,
-}
-
-pub struct ModRM {
-    pub mode: u8,
-    pub reg: u8,
-    pub rm: u8,
-}
-
-#[inline]
-pub fn gen_modrm(mode: u8, reg: u8, rm: u8) -> u8 {
-    ((mode & 0b11) << 6) | ((reg & 0b111) << 3) | rm & 0b111
-}
-
-#[inline]
-pub fn gen_sib(base: u8, index: u8, scale: u8) -> u8 {
-    (scale & 0b11) << 6 | (index & 0b111) << 3 | base & 0b111
-}
-
-impl ModRM {
-    pub fn new() -> Self {
-        Self {
-            mode: 0,
-            reg: 0,
-            rm: 0,
-        }
-    }
-
-    pub fn from_byte(byte: u8) -> Self {
-        ModRM {
-            mode: (byte >> 6) & 0b11,
-            reg: (byte >> 3) & 0b111,
-            rm: byte & 0b111,
-        }
-    }
-
-    pub fn byte(&self) -> u8 {
-        (self.mode << 6) | (self.reg << 3) | self.rm
-    }
-
-    pub fn encode(&self, buf: &mut impl CodeSink) {
-        buf.putb(self.byte());
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Operand {
-    Reg(Reg),
-    Mem(Mem),
-    Imm(Imm),
-}
-
-impl std::fmt::Display for Operand {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Operand::Reg(reg) => write!(f, "{}", reg),
-            Operand::Mem(rm) => write!(f, "{}", rm),
-            Operand::Imm(imm) => write!(f, "{}", imm),
-        }
-    }
-}
-
-impl Operand {
-    pub fn width(&self) -> u8 {
-        match self {
-            Operand::Reg(reg) => reg.width(),
-            Operand::Mem(mem) => mem.width,
-            Operand::Imm(imm) => imm.width(),
-        }
-    }
-
-    pub fn is_rm(&self) -> bool {
-        match self {
-            Operand::Mem(_) | Operand::Reg(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_reg(&self) -> bool {
-        match self {
-            Operand::Reg(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_imm(&self) -> bool {
-        match self {
-            Operand::Imm(_) => true,
-            _ => false,
-        }
-    }
-}
+use encode::*;
+use rex::*;
+use reg::*;
+use operand::*;
+use disp::*;
+use modrm::*;
 
 #[derive(Debug)]
 pub struct Inst {
@@ -132,9 +39,9 @@ pub fn operand_is_imm(operand_opt: &Option<Operand>) -> bool {
 }
 
 impl Inst {
-    pub fn width_validate<const I: u8>(&self) -> Result<(), String> {
+    pub fn width_validate<const I: u8, const S: u8, const T: u8>(&self) -> Result<(), String> {
         if let Some(src) = self.src {
-            if src.width() == I {
+            if src.width() == S {
                 Ok(())
             }
             else {
@@ -155,7 +62,7 @@ impl Inst {
     }
 
     /// Encode x86-64 legacy prefixes (REX, segment overrides, operand size, address size)
-    pub fn encode_prefix_lagecy(&self, buf: &mut impl CodeSink) -> Result<(), String> {
+    pub fn encode_prefix_legacy(&self, buf: &mut impl CodeSink) -> Result<(), String> {
         // TODO: Additional prefix handling could be added here for:
         // - Segment overrides (CS, DS, ES, FS, GS, SS) - 0x2E, 0x3E, 0x26, 0x64, 0x65, 0x36
         // - Address size override (0x67)

@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-swcal_parsec = { workspace = true }
+tinyparsec = { git = "https://github.com/dlinyang/tinyparsec" }
 
 [build-dependencies]
 swcal_x64_meta = { path = "meta" }

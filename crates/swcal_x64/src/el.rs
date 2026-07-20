@@ -1,4 +1,4 @@
-use crate::inst::inst::Inst;
+use crate::inst::Inst;
 
 /// excutable and linkable Table
 #[derive(Debug)]
