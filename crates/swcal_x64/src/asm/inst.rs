@@ -93,7 +93,7 @@ fn parse_mem(src: Text) -> ParseResult<Text, Mem> {
 
     Ok((
         Mem {
-            width: width_opt.unwrap_or(reg.width() as u8),
+            width: width_opt.unwrap_or(reg.width()),
             reg,
             sib_opt,
             disp_opt,
@@ -208,18 +208,18 @@ pub enum Label {
     Mem { name: String, disp_opt: Option<i32> },
 }
 
-fn parse_size_define(src: Text) -> ParseResult<Text, u8> {
+fn parse_size_define(src: Text) -> ParseResult<Text, u16> {
     choice!(
-        parse_size_define_pc("byte", 1),
-        parse_size_define_pc("word", 2),
-        parse_size_define_pc("dword", 4),
-        parse_size_define_pc("qword", 8)
+        parse_size_define_pc("byte", 8),
+        parse_size_define_pc("word", 16),
+        parse_size_define_pc("dword", 32),
+        parse_size_define_pc("qword", 64)
     )
     .parse(src)
 }
 
 #[inline]
-fn parse_size_define_pc<'a>(key: &'a str, width: u8) -> impl ParsecT<Text<'a>, u8> {
+fn parse_size_define_pc<'a>(key: &'a str, width: u16) -> impl ParsecT<Text<'a>, u16> {
     move |input| keyworld(key).parse(input).map(|(_, rest)| (width, rest))
 }
 

@@ -17,28 +17,28 @@ impl RustBuilder {
         self.indent -= 4;
     }
 
-    pub fn block(&mut self, f: impl FnOnce(&mut Self)) {
-        self.line("{");
+    pub fn block(&mut self, ident: impl AsRef<str>, f: impl FnOnce(&mut Self)) {
+        self.line(format!("{}{{", ident.as_ref()));
         self.indent(f);
         self.line("}");
+    }
+
+    pub fn paren(&mut self, ident: impl AsRef<str>, f: impl FnOnce(&mut Self))  {
+        self.line(format!("{}(", ident.as_ref()));
+        self.indent(f);
+        self.line(")");
     }
 
     pub fn if_codition(&mut self, condition: impl AsRef<str>, f: impl FnOnce(&mut Self)) {
-        self.line(format!("if {} {{", condition.as_ref()));
-        self.indent(f);
-        self.line("}");
+        self.block(format!("if {} ", condition.as_ref()), f);
     }
 
     pub fn function(&mut self, f_decl: impl AsRef<str>, f: impl FnOnce(&mut Self)) {
-        self.line(format!("{}{{", f_decl.as_ref()));
-        self.indent(f);
-        self.line("}");
+        self.block(f_decl.as_ref(), f);
     }
 
-    pub fn smatch(&mut self, val: impl AsRef<str>, f: impl FnOnce(&mut Self)) {
-        self.line(format!("match {} {{", val.as_ref()));
-        self.indent(f);
-        self.line("}");
+    pub fn stmt_match(&mut self, var: impl AsRef<str>, f: impl FnOnce(&mut Self)) {
+        self.block(format!("match {}", var.as_ref()), f);
     }
 
     pub fn record(&mut self, recordtype: impl AsRef<str>, f: impl FnOnce(&mut Self)) {
@@ -57,7 +57,6 @@ impl RustBuilder {
         self.lines.push(String::new());
         self
     }
-
 
     pub fn line(&mut self, line: impl AsRef<str>) -> &mut Self {
         let ws = " ".repeat(self.indent as usize);

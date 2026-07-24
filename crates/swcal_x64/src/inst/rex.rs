@@ -1,3 +1,5 @@
+use crate::inst::encode::CodeSink;
+
 /// REX prefix structure for x86-64 instructions.
 ///
 /// The REX (Register EXtension) prefix is used in x86-64 instructions to
@@ -32,9 +34,8 @@ pub struct Rex {
 }
 
 impl Rex {
-    /// w r x b is false
-    pub fn new() -> Self {
-        Self { w: false, r: false, x: false, b: false }
+    pub fn new(w: bool, r: bool, x: bool, b: bool) -> Self {
+        Self { w, r, x, b }
     }
 
     pub fn from_byte(byte: u8) -> Self {
@@ -59,13 +60,19 @@ impl Rex {
             | (if self.x { 0x02 } else { 0 })
             | (if self.b { 0x01 } else { 0 })
     }
+
+    pub fn encode(&self, buf: &mut impl CodeSink) {
+        if self.need() {
+            buf.putb(self.byte());
+        }
+    }
 }
 
 impl core::fmt::Display for Rex {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(
             f,
-            "REX(0x{:02x}) [W={}, R={}, X={}, B={}]",
+            "REX({:#x}) [W={}, R={}, X={}, B={}]",
             self.byte(),
             self.w as u8,
             self.r as u8,

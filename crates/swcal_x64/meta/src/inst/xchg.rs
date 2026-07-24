@@ -28,10 +28,10 @@ pub fn xchg() -> Vec<InstFormat> {
         // XCHG r64, r/m64 - 87 /r (REX.W)
         instf!("xchg", Legacy, opcode!(0x87), modrm(), reg(Gpr, u(64), RW), rm(Gpr, u(64), RW)),
 
-        // // XCHG r64, r64 (short form: xchg eAX/rax + reg) - 90+rd (REX.W for 64-bit)
-        // // In 64-bit mode, the 0x90 opcode is xchg rax, r64 (not nop)
-        // instf!("xchg", Legacy, opcode!(0x90), modrm_r(), reg(Gpr, u(64), RW), reg(Gpr, u(64), RW)),
+        // XCHG r64, r64 (short form: xchg eAX/rax + reg) - 90+rd (REX.W for 64-bit)
+        // In 64-bit mode, the 0x90 opcode is xchg rax, r64 (not nop)
+        instf!("xchg", Legacy, opcode!(0x90), modrm_r(), reg(Fgr(0), u(32), RW), reg(Gpr, u(32), RW)),
         // XCHG r64, eAX/rax (0x91-0x97, same encoding as 90+rd, for completeness with rax as second operand)
-        instf!("xchg", Legacy, opcode!(0x90), modrm_r(), reg(Gpr, u(64), RW), reg(Gpr, u(64), RW)),
+        instf!("xchg", Legacy, opcode!(0x90), modrm_r(), reg(Fgr(0), u(64), RW), reg(Gpr, u(64), RW)),
     ]
 }

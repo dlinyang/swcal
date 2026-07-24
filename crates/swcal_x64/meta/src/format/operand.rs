@@ -1,5 +1,3 @@
-use std::{any::type_name, fmt::format};
-
 use crate::{generate::*, type_name};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -91,11 +89,23 @@ pub enum RegKind {
     Gpr,
     XMM,
     YMM,
+    Fgr(u8),
+}
+
+impl RegKind {
+    pub fn is_reg(&self) -> bool {
+        *self == Self::Gpr
+    }
 }
 
 impl SrcGen for RegKind {
     fn var_name(&self) -> String {
-        todo!()
+        match self {
+            RegKind::Gpr => "gpr".into(),
+            RegKind::XMM => "xmm".into(),
+            RegKind::YMM => "ymm".into(),
+            RegKind::Fgr(id) => format!("fixgpr{}", id),
+        }
     }
 
     fn type_name(&self) -> String {
@@ -103,6 +113,7 @@ impl SrcGen for RegKind {
             RegKind::Gpr => "Gpr".into(),
             RegKind::XMM => "XMM".into(),
             RegKind::YMM => "YMM".into(),
+            RegKind::Fgr(reg_id) => format!("FixedGpr<{}>", reg_id),
         }
     }
 
@@ -149,14 +160,23 @@ impl std::fmt::Display for OperandKind {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct OperandFormat {
-    ty: OperandKind,
-    val_ty: ValType,
+    pub ty: OperandKind,
+    pub val_ty: ValType,
 }
 
 impl OperandFormat {
     pub fn is_width<const U: u16>(&self) -> bool {
         self.val_ty.is_width::<U>()
+    }
+
+    pub fn is_reg(&self) -> bool {
+        if let OperandKind::Reg(reg,_) = self.ty { reg.is_reg() } else {false}
+    }
+
+    pub fn is_rm(&self) -> bool {
+        if let OperandKind::RM(_,_) = self.ty {true} else {false}
     }
 }
 
@@ -168,13 +188,18 @@ impl std::fmt::Display for OperandFormat {
 
 impl SrcGen for OperandFormat {
     fn var_name(&self) -> String {
-        todo!()
+        match self.ty {
+            OperandKind::Reg(reg_kind, _rwattr) => format!("{}{}", reg_kind.var_name(), self.val_ty.width()),
+            OperandKind::RM(_reg_kind, _rwattr) => format!("rm{}", self.val_ty.width()),
+            OperandKind::IMM => format!("imm{}", self.val_ty.width()),
+            OperandKind::MOFFSET => todo!(),
+        }
     }
 
     fn type_name(&self) -> String {
         match self.ty {
-            OperandKind::Reg(reg_kind, rwattr) => format!("{}{}<R,{}>", reg_kind.type_name(), self.val_ty.width(), rwattr),
-            OperandKind::RM(reg_kind, rwattr) => format!("{}{}<M,{}>", reg_kind.type_name(), self.val_ty.width(), rwattr),
+            OperandKind::Reg(reg_kind, _rwattr) => format!("{}", reg_kind.type_name()),
+            OperandKind::RM(reg_kind, _rwattr) => format!("RM<{}>", reg_kind.type_name()),
             OperandKind::IMM => format!("Imm{}", self.val_ty.width()),
             OperandKind::MOFFSET => format!("Moffset{}", self.val_ty.width()),
         }
@@ -205,6 +230,7 @@ pub fn imm_f(bit: u16) -> OperandFormat {
     OperandFormat { ty: OperandKind::IMM, val_ty: f(bit)}
 }
 
+#[derive(Clone, Copy)]
 pub enum OperandEncode {
     NoOperand,
     One(OperandFormat),
@@ -214,11 +240,21 @@ pub enum OperandEncode {
 
 impl OperandEncode {
     pub fn is_width<const U: u16>(&self) -> bool {
+        //need fix exist 32bit to 64bit
         match self {
             OperandEncode::NoOperand => false,
             OperandEncode::One(o1) => o1.is_width::<U>(),
             OperandEncode::Two(o1, o2) => o1.is_width::<U>() && o2.is_width::<U>(),
             OperandEncode::Tree(o1, o2, o3) => o1.is_width::<U>() && o2.is_width::<U>() && o3.is_width::<U>(),
+        }
+    }
+
+    pub fn to_vec(&self) -> Vec<OperandFormat> {
+        match self.clone() {
+            OperandEncode::NoOperand => vec![],
+            OperandEncode::One(o) => vec![o],
+            OperandEncode::Two(o1, o2) => vec![o1, o2],
+            OperandEncode::Tree(o1, o2, o3) => vec![o1, o2, o3],
         }
     }
 }
@@ -272,11 +308,15 @@ macro_rules! operand {
 pub fn genarate_operand_field(builder: &mut RustBuilder, encode: &OperandEncode) {
     match encode {
         OperandEncode::NoOperand => {},
-        OperandEncode::One(ope) => {builder.line(format!("operand: {},", ope.type_name()));},
-        OperandEncode::Two(dst, src) => {
-            builder.line(format!("dst: {},", dst.type_name()));
-            builder.line(format!("src: {},", src.type_name()));
+        OperandEncode::One(o) => {builder.line(format!("pub {}: {},", o.var_name(), o.type_name()));},
+        OperandEncode::Two(o1, o2) => {
+            builder.line(format!("pub {}: {},", o1.var_name(), o1.type_name()));
+            builder.line(format!("pub {}: {},", o2.var_name(), o2.type_name()));
         },
-        OperandEncode::Tree(_dst, _src, _src_ext) => todo!(),
+        OperandEncode::Tree(o1, o2, o3) => {
+            builder.line(format!("pub {}: {},", o1.var_name(), o1.type_name()));
+            builder.line(format!("pub {}: {},", o2.var_name(), o2.type_name()));
+            builder.line(format!("pub {}: {},", o3.var_name(), o3.type_name()));
+        },
     }
 }

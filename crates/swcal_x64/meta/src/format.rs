@@ -1,3 +1,5 @@
+// use std::fmt::format;
+
 use crate::{generate::*, type_name};
 
 pub mod prefix;
@@ -112,4 +114,161 @@ impl Validation for InstFormat {
     fn validation(&self) -> String {
         todo!()
     }
+}
+
+pub fn build_inst(src: &mut RustBuilder, instf: &InstFormat) {
+    // get operand vec form Operand enum
+    // operand vec is more easy to use, but operand enum is more good contraint i think
+    let operands = instf.encode.operand.to_vec();
+
+    src.line(format!("//{}", instf).as_str());
+    src.record(instf.type_name(), |src| {
+        genarate_operand_field(src, &instf.encode.operand);
+    });
+    src.blank();
+    src.implement(instf.type_name(), |src| {
+        let mut args = String::new();
+        for operand in &operands {
+            args.push_str(
+                format!("{}:{},", operand.var_name(),operand.type_name()).as_str()
+            );
+        }
+
+        src.function(format!("pub fn new({}) -> Self", args), |src| {
+            src.block("Self", |src|{
+                for operand in &operands {
+                    src.line(format!("{},", operand.var_name()));
+                }
+            });
+        });
+
+        src.blank();
+        src.function("pub fn from_inst(inst: &Inst) -> Result<Self, String>", |src| {
+            let inst_field = ["dst", "src", "src_ext"];
+            let mut i = 0;
+            for operand in &operands {
+                let var_name = operand.var_name();
+                src.line(format!("let {} = inst.{}.ok_or(\"none operand\")?;", var_name, inst_field[i]));
+                src.line(format!("let {} = {}.try_into()?;", var_name, var_name));
+                i += 1;
+            }
+
+            // // no operand
+            // if i == 0 {
+            //     //check opera
+            // }
+            src.paren("Ok", |src|{
+                src.block("Self", |src|
+                    for operand in &operands {
+                        src.line(format!("{},", operand.var_name()));
+                    }
+                )
+            });
+        });
+        src.blank();
+        src.function("pub fn encode(&self, buf: &mut impl CodeSink)", |src| {
+            let mut reg_var_name = None;
+            let mut rm_var_name = None;
+            let mut imm_var_name = None;
+            let mut is_fixed_reg = false;
+
+            for operand in &operands {
+                match operand.ty {
+                    OperandKind::Reg(reg_kind, _rwattr) => {
+                        reg_var_name = Some(operand.var_name());
+                        match reg_kind {
+                            RegKind::Gpr => {},
+                            RegKind::XMM => {},
+                            RegKind::YMM => {},
+                            RegKind::Fgr(_) => {
+                                is_fixed_reg = true;
+                            },
+                        }
+                    },
+                    OperandKind::RM(_reg_kind, _rwattr) => rm_var_name = Some(operand.var_name()),
+                    OperandKind::IMM => imm_var_name = Some(operand.var_name()),
+                    OperandKind::MOFFSET => {},
+                }
+            }
+
+            match instf.prefix {
+                Prefix::Legacy => {
+                    src.line("//legacy prefix and rex prefix");
+                    if instf.encode.operand.is_width::<16>() {
+                        src.line("buf.putb(0x66);");
+                    }
+
+                    src.line(format!("let rex_w = {};", instf.encode.operand.is_width::<64>()));
+
+                    // check reg is extend
+                    if let Some(var_name) = &reg_var_name && (!is_fixed_reg) && instf.encode.modrm != ModRMKind::Reg{
+                        src.line(format!("let rex_r = self.{}.is_extend();",var_name));
+                    } else {
+                        src.line("let rex_r = false;");
+                    }
+
+                    // check rm is extend
+                    if let Some(var_name) = &rm_var_name {
+                            src.line(format!("let rex_x = self.{}.rex_x();",var_name));
+                            src.line(format!("let rex_b = self.{}.rex_b();",var_name));
+                    }
+                    else {
+                        src.line("let rex_x = false;");
+                        if let ModRMKind::Reg = instf.encode.modrm {
+                            let var_name = reg_var_name.as_ref().expect("opcode encode reg");
+                            src.line(format!("let rex_b = self.{}.is_extend();",var_name));
+                        } else {
+                            src.line("let rex_b = false;");
+                        }
+                    }
+
+                    src.line("Rex::new(rex_w, rex_r, rex_x, rex_b).encode(buf);");
+                },
+                Prefix::Vex => todo!(),
+                Prefix::Evex => todo!(),
+            }
+
+            // opcode generate
+            if let ModRMKind::Reg = instf.encode.modrm {
+                let var_name = reg_var_name.as_ref().expect("Encode reg in opcode unmacted");
+                src.line(format!("let op_reg = self.{}.encode();", var_name));
+                src.line(format!("buf.putb({:#x}|(op_reg & 0b111));", instf.opcode.fst));
+            } else {
+                src.line(format!("buf.putb({:#x});",instf.opcode.fst));
+            }
+            if let Some(op) = &instf.opcode.snd {
+                src.line(format!("buf.putb({:#x});",op));
+            };
+            if let Some(op) = &instf.opcode.trd {
+                src.line(format!("buf.putb({:#x});",op));
+            };
+
+            match instf.encode.modrm {
+                ModRMKind::None => {
+                    src.line("//none modrm");
+                },
+                ModRMKind::Normal => {
+                    src.line("//modrm");
+                    // operand reg and rm
+                    let reg_var_name = reg_var_name.as_ref().expect("modrm unmatched: no reg");
+                    let rm_var_name = rm_var_name.as_ref().expect("modrm unmatched: no rm");
+                    src.line(format!("encode_modrm(&self.{}, &self.{},buf);", reg_var_name, rm_var_name));
+                },
+                ModRMKind::Digit(ext_op) => {
+                    src.line("//extend opcode in modrm");
+                    let rm_var_name = rm_var_name.as_ref().expect(format!("modrm unmatched: no reg {}", instf).as_str());
+                    src.line(format!("encode_modrm(&{}, &self.{},buf);", ext_op, rm_var_name));
+                },
+                ModRMKind::Reg => {
+                    src.line("//none modrm and reg encode in opcode");
+                },
+            }
+
+            // encode imm
+            if let Some(var_name) = &imm_var_name {
+                src.line("//encode imm");
+                src.line(format!("self.{}.encode(buf);", var_name));
+            }
+        });
+    });
 }

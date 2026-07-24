@@ -9,17 +9,17 @@ pub enum Imm {
 }
 
 impl Imm {
-    pub fn width(&self) -> u8 {
+    pub fn width(&self) -> u16 {
         match self {
-            Imm::Imm8(_) => 1,
-            Imm::Imm16(_) => 2,
-            Imm::Imm32(_) => 4,
-            Imm::Imm64(_) => 8,
+            Imm::Imm8(_) => 8,
+            Imm::Imm16(_) => 16,
+            Imm::Imm32(_) => 32,
+            Imm::Imm64(_) => 64,
         }
     }
 
     pub fn is_w64(&self) -> bool {
-        self.width() == 8
+        self.width() == 64
     }
 
     pub fn encode(&self, buf: &mut impl CodeSink){
@@ -42,3 +42,41 @@ impl std::fmt::Display for Imm {
         }
     }
 }
+
+macro_rules! imm_n {
+    ($name: ident, $t: ty, $f:ident) => {
+        pub struct $name {
+            val: $t,
+        }
+
+        impl $name {
+            #[inline]
+            pub fn new(val: $t) -> Self {
+                Self { val }
+            }
+
+            pub fn value(&self) -> $t {
+                self.val
+            }
+
+            pub fn encode(&self, buf: &mut impl CodeSink) {
+                buf.$f(self.val)
+            }
+        }
+
+        impl TryFrom<Imm> for $name {
+            type Error = String;
+            fn try_from(value: Imm) -> Result<Self, Self::Error> {
+                match value {
+                    Imm::$name(val) => Ok(Self::new(val)),
+                    _ => Err("Unmatched imm type".into()),
+                }
+            }
+        }
+    };
+}
+
+imm_n!(Imm8, u8, putb);
+imm_n!(Imm16, u16, putw);
+imm_n!(Imm32, u32, putd);
+imm_n!(Imm64, u64, putq);

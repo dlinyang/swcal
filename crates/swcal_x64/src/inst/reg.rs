@@ -128,12 +128,12 @@ impl Reg {
     }
 
     /// 返回寄存器的宽度（字节数）
-    pub fn width(&self) -> u8 {
+    pub fn width(&self) -> u16 {
         match self.kind() {
-            RegKind::GR8  => 1,
-            RegKind::GR16 => 2,
-            RegKind::GR32 => 4,
-            RegKind::GR64 => 8,
+            RegKind::GR8  => 8,
+            RegKind::GR16 => 16,
+            RegKind::GR32 => 32,
+            RegKind::GR64 => 64,
         }
     }
 

@@ -1,3 +1,7 @@
+pub trait Encode {
+    fn encode(&self, sink: &mut impl CodeSink);
+}
+
 pub trait CodeSink {
     fn putb(&mut self, byte: u8);
     fn putw(&mut self, word: u16);
@@ -37,6 +41,7 @@ impl CodeSink for Buffer {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct InstBin {
+    /// the longest encode in x86_64
     data: [u8;15],
     len: usize,
 }
@@ -44,6 +49,15 @@ pub struct InstBin {
 impl InstBin {
     pub fn new() -> Self {
         Self { data: [0;_], len: 0 }
+    }
+
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    pub fn reset(&mut self) {
+        self.len = 0;
     }
 
     pub fn less(&self, other: Self) -> Self {

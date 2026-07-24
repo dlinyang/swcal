@@ -1,19 +1,25 @@
+use crate::inst::base::RegEnc;
+
 use super::reg::*;
 use super::disp::*;
 
 /// width \[reg + (index * scale)? + (disp)?\]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Mem {
-    //width-byte
-    pub width: u8,
+    pub width: u16,
     pub reg: Reg,
     pub sib_opt: Option<(Reg, u8)>,
     pub disp_opt: Option<Disp>,
 }
 
 impl Mem {
-    pub fn check_rex(&self) -> bool {
-        todo!()
+
+    pub fn rex_b(&self) -> bool {
+        self.reg.is_extended()
+    }
+
+    pub fn rex_x(&self) -> bool {
+        self.sib_opt.is_some_and(|(r,_)| r.is_extended())
     }
 
     pub fn check_reg_valid(&self) -> bool {
@@ -32,7 +38,7 @@ impl std::fmt::Display for Mem {
             2 => write!(f, "word")?,
             4 => write!(f, "dword")?,
             8 => write!(f, "qword")?,
-            _ => write!(f, "{}bit", self.width * 8)?,
+            _ => write!(f, "{}bit", self.width)?,
         }
         write!(f, " [")?;
         write!(f, "{}", self.reg)?;
@@ -43,5 +49,40 @@ impl std::fmt::Display for Mem {
             write!(f, "+{disp}")?;
         }
         write!(f, "]")
+    }
+}
+
+pub enum RM<R: RegEnc> {
+    Reg(R),
+    Mem {
+        reg: R,
+        disp: Option<Disp>
+    },
+    Index{
+        base: R,
+        index: R,
+        scale: u8,
+        disp: Option<Disp>
+    },
+    RIPDisp(i32),
+}
+
+impl<R: RegEnc + Copy> RM<R> {
+    pub fn rex_b(&self) -> bool {
+        match self {
+            RM::Reg(reg) => reg.is_extend(),
+            RM::Mem { reg, ..} => reg.is_extend(),
+            RM::Index { base, ..} => base.is_extend(),
+            RM::RIPDisp(_) => false,
+        }
+    }
+
+    pub fn rex_x(&self) -> bool {
+        match self {
+            RM::Reg(_) => false,
+            RM::Mem {..} => false,
+            RM::Index { base: _base, index, .. } => index.is_extend(),
+            RM::RIPDisp(_) => false,
+        }
     }
 }

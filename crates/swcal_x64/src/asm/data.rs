@@ -145,7 +145,7 @@ pub fn parse_oct<'a>(src: Text<'a>) -> ParseResult<Text<'a>, Token<&'a str>> {
 pub fn parse_bin<'a>(src: Text<'a>) -> ParseResult<Text<'a>, Token<&'a str>> {
     let (_, rest) = str_pc("0b").parse(src)?;
     str_fn_pc(|str| {
-        str.find(|ch: char| ch != '1' || ch != '0')
+        str.find(|ch: char| ch != '1' && ch != '0')
             .unwrap_or_default()
     })
     .parse(rest)

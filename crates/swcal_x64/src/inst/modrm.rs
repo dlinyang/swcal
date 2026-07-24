@@ -1,3 +1,5 @@
+use crate::inst::{base::RegEnc, disp::Disp, mem::RM};
+
 use super::encode::*;
 
 #[inline]
@@ -52,5 +54,54 @@ impl ModRM {
 
     pub fn encode(&self, buf: &mut impl CodeSink) {
         buf.putb(self.byte());
+    }
+}
+
+pub fn encode_modrm<R: RegEnc, M: RegEnc>(reg: &R, rm: &RM<M>, buf: &mut impl CodeSink) {
+    let reg = reg.encode();
+    match rm {
+        RM::Reg(rm) => {
+            let rm  = rm.encode();
+            buf.putb(gen_modrm(ModRMMode::Reg as u8, reg, rm));
+        },
+        RM::Mem { reg: rm, disp } => {
+            let rm = rm.encode();
+            match disp {
+                Some(Disp::Disp8(disp)) => {
+                    buf.putb(gen_modrm(ModRMMode::Disp8 as u8, reg, rm));
+                    buf.putb(*disp as u8);
+                },
+                Some(Disp::Disp32(disp)) =>{
+                    buf.putb(gen_modrm(ModRMMode::Disp32 as u8, reg, rm));
+                    buf.putd(*disp as u32);
+                },
+                None => {
+                    buf.putb(gen_modrm(ModRMMode::Mem as u8, reg, rm));
+                }
+            }
+        },
+        RM::Index { base, index, scale, disp } => {
+            let rm = 0b100;
+            match disp {
+                Some(Disp::Disp8(disp)) => {
+                    buf.putb(gen_modrm(ModRMMode::Disp8 as u8, reg, rm));
+                    buf.putb(gen_sib(base.encode(), index.encode(), *scale));
+                    buf.putb(*disp as u8);
+                },
+                Some(Disp::Disp32(disp)) =>{
+                    buf.putb(gen_modrm(ModRMMode::Disp32 as u8, reg, rm));
+                    buf.putb(gen_sib(base.encode(), index.encode(), *scale));
+                    buf.putd(*disp as u32);
+                },
+                None => {
+                    buf.putb(gen_modrm(ModRMMode::Mem as u8, reg, rm));
+                    buf.putb(gen_sib(base.encode(), index.encode(), *scale));
+                }
+            }
+        },
+        RM::RIPDisp(disp) => {
+            buf.putb(gen_modrm(ModRMMode::Mem as u8, reg, 0b101));
+            buf.putd(*disp as u32);
+        },
     }
 }

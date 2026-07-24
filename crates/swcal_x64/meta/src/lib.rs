@@ -1,4 +1,4 @@
-use std::{io::Write, path::Path};
+use std::{fmt::format, io::Write, path::Path};
 
 use crate::{format::*, generate::SrcGen};
 
@@ -33,49 +33,51 @@ pub fn generate_inst_emit(p: &Path) {
 
     for (_mnemonic, inst_codgen) in inst::inst_codegen_table() {
         for instf in inst_codgen {
-            // gernate structure of Instruction
-            src.record(instf.type_name(), |src| {
-                genarate_operand_field(src, &instf.encode.operand);
-            });
-
-            src.blank();
-            // method
-            src.implement(instf.type_name(), |src| {
-                // generate Inst to Specific Instrution struct
-                src.function("pub fn build(inst: &Inst) -> Result<Self, String>", |src| {
-                    src.line("todo!()");
-                });
-                src.blank();
-            });
+            // build inst
+            build_inst(&mut src, &instf);
             src.blank();
         }
     }
 
-    generate_asmbler(&mut src);
+    // build asmebler
+    generate_asmebler(&mut src);
 
     let asm_mod_file_path = p.join("codegen.rs");
     let mut f = std::fs::File::create(asm_mod_file_path).unwrap();
     f.write(src.build().as_bytes()).unwrap();
 }
 
-fn generate_asmbler(src: &mut crate::generate::RustBuilder) {
-    src.function(stringify!(pub fn x86_64_asmbler(inst: &Inst) -> Result<InstBin,String>), |c|{
-        c.blank()
-            .smatch("inst.mnemonic.as_str()", |c|{
-                for (mnemonic, inst_codgen) in inst::inst_codegen_table() {
-                    c.line(format!("\"{}\"=> asm_{}(inst),", mnemonic, mnemonic));
+// build asmebler
+fn generate_asmebler(src: &mut crate::generate::RustBuilder) {
+    // match mnemonic
+    src.function(stringify!(pub fn x86_64_asembler(inst: &Inst) -> Result<InstBin,String>), |src|{
+        src.blank()
+            .stmt_match("inst.mnemonic.as_str()", |src|{
+                for (mnemonic, _inst_codgen) in inst::inst_codegen_table() {
+                    src.line(format!("\"{}\"=> asm_{}(inst),", mnemonic, mnemonic));
                 }
-                c.line(stringify!(_ => panic!(),));
-
+                src.line(stringify!(_ => panic!(),));
             });
-
     });
 
-    for (mnemonic, inst_codgen) in inst::inst_codegen_table() {
+    // instruction try
+    for (mnemonic, inst_table) in inst::inst_codegen_table() {
         src.blank()
-            .function(format!("pub fn asm_{}(inst: &Inst) -> Result<InstBin,String>", mnemonic), |c| {
-                c.line("let mut ret = InstBin::new();")
-                    .line("todo!()");
+            .function(format!("pub fn asm_{}(inst: &Inst) -> Result<InstBin,String>", mnemonic), |src| {
+                src.line("let mut ret: Option<InstBin> = None;");
+                src.line("let mut temp = InstBin::new();");
+                for instf in inst_table {
+                    src.if_codition(format!("let Ok(inst) = {}::from_inst(inst)", instf.type_name()), |src| {
+                        src.line("inst.encode(&mut temp);");
+                        src.stmt_match("&ret", |src| {
+                            src.line("Some(bin) if bin.len() > temp.len() => ret = Some(temp.clone()),");
+                            src.line("None => ret = Some(temp.clone()),");
+                            src.line("_=>{},");
+                        });
+                        src.line("temp.reset()");
+                    });
+                }
+                src.line("ret.ok_or(\"unmatched instruction\".into())");
             });
     }
 }
