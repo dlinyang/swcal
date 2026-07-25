@@ -10,12 +10,7 @@ pub mod imm;
 pub mod disp;
 pub mod modrm;
 
-// use encode::*;
-// use rex::*;
-// use reg::*;
 use operand::*;
-// use disp::*;
-// use modrm::*;
 
 #[derive(Debug)]
 pub struct Inst {

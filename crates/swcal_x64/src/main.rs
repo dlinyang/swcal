@@ -1,21 +1,25 @@
-use swcal_x64::{asm::parser::*, inst::encode::InstBin};
+use swcal_x64::asm::parser::*;
 
 fn main() {
-    swcal_x64::codegen::list_inst();
+    // swcal_x64::codegen::list_inst();
     let src = include_str!("../tests/test_asm.asm");
 
     match parse(src) {
         Ok((el, _)) => {
             for section in el.sections {
-                // println!("load {:?}", section.name);
+                let mut base = 0x1000;
                 for data in section.data {
                     match data {
                         swcal_x64::el::Data::Inst(inst) => {
                             let bin = swcal_x64::codegen::x86_64_asembler(&inst);
-                            println!("{}", inst);
                             match bin {
-                                Ok(bin) => println!("{}", bin),
-                                Err(err) => todo!(),
+                                Ok(bin) => {
+                                    base += bin.len();
+                                    println!("{base:<8x} {bin:<15} {inst:<}");
+                                },
+                                Err(err) => {
+                                    println!("error: {err} {inst}");
+                                },
                             }
                         }
                         swcal_x64::el::Data::RawData(_items) => {}

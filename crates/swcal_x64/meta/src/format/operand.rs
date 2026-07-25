@@ -235,17 +235,26 @@ pub enum OperandEncode {
     NoOperand,
     One(OperandFormat),
     Two(OperandFormat, OperandFormat),
-    Tree(OperandFormat, OperandFormat, OperandFormat),
+    Three(OperandFormat, OperandFormat, OperandFormat),
 }
 
 impl OperandEncode {
-    pub fn is_width<const U: u16>(&self) -> bool {
+    pub fn is_all_width<const U: u16>(&self) -> bool {
         //need fix exist 32bit to 64bit
         match self {
             OperandEncode::NoOperand => false,
             OperandEncode::One(o1) => o1.is_width::<U>(),
-            OperandEncode::Two(o1, o2) => o1.is_width::<U>() && o2.is_width::<U>(),
-            OperandEncode::Tree(o1, o2, o3) => o1.is_width::<U>() && o2.is_width::<U>() && o3.is_width::<U>(),
+            OperandEncode::Two(o1, o2) => o1.is_width::<U>() && o2.is_width::<U>() ,
+            OperandEncode::Three(o1, o2, o3) => o1.is_width::<U>() && o2.is_width::<U>() && o3.is_width::<U>(),
+        }
+    }
+
+    pub fn is_exist_width<const U: u16>(&self) -> bool {
+        match self {
+            OperandEncode::NoOperand => false,
+            OperandEncode::One(o1) => o1.is_width::<U>(),
+            OperandEncode::Two(o1, o2) => o1.is_width::<U>() || o2.is_width::<U>(),
+            OperandEncode::Three(o1, o2, o3) => o1.is_width::<U>() || o2.is_width::<U>() || o3.is_width::<U>(),
         }
     }
 
@@ -254,7 +263,7 @@ impl OperandEncode {
             OperandEncode::NoOperand => vec![],
             OperandEncode::One(o) => vec![o],
             OperandEncode::Two(o1, o2) => vec![o1, o2],
-            OperandEncode::Tree(o1, o2, o3) => vec![o1, o2, o3],
+            OperandEncode::Three(o1, o2, o3) => vec![o1, o2, o3],
         }
     }
 }
@@ -265,7 +274,7 @@ impl std::fmt::Display for OperandEncode {
             OperandEncode::NoOperand => Ok(()),
             OperandEncode::One(ope) => write!(f, "{}", ope),
             OperandEncode::Two(dst, src) => write!(f, "{:<12}, {:<12}", dst, src),
-            OperandEncode::Tree(dst, src, src_other) => write!(f, "{:<12}, {:<12}, {:<12}", dst, src, src_other),
+            OperandEncode::Three(dst, src, src_other) => write!(f, "{:<12}, {:<12}, {:<12}", dst, src, src_other),
         }
     }
 }
@@ -280,7 +289,7 @@ impl SrcGen for OperandEncode {
             OperandEncode::NoOperand => "".into(),
             OperandEncode::One(ope) => type_name!(ope.ty, ope.val_ty),
             OperandEncode::Two(dst, src) => type_name!(dst.ty, src.ty, dst.val_ty, src.val_ty),
-            OperandEncode::Tree(_, _, _) => todo!(),
+            OperandEncode::Three(o1, o2, o3) => type_name!(o1.ty,o2.ty,o3.ty,o1.val_ty,o2.val_ty,o3.val_ty),
         }
     }
 
@@ -313,7 +322,7 @@ pub fn genarate_operand_field(builder: &mut RustBuilder, encode: &OperandEncode)
             builder.line(format!("pub {}: {},", o1.var_name(), o1.type_name()));
             builder.line(format!("pub {}: {},", o2.var_name(), o2.type_name()));
         },
-        OperandEncode::Tree(o1, o2, o3) => {
+        OperandEncode::Three(o1, o2, o3) => {
             builder.line(format!("pub {}: {},", o1.var_name(), o1.type_name()));
             builder.line(format!("pub {}: {},", o2.var_name(), o2.type_name()));
             builder.line(format!("pub {}: {},", o3.var_name(), o3.type_name()));

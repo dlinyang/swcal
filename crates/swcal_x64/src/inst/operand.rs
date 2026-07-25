@@ -1,5 +1,6 @@
 use crate::inst::base::RegEnc;
-use crate::inst::encode::Encode;
+use crate::inst::base::width_as_str;
+// use crate::inst::encode::Encode;
 use crate::inst::gpr::FixedGpr;
 use crate::inst::gpr::Gpr;
 
@@ -10,7 +11,10 @@ use super::imm::*;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Operand {
     Reg(Reg),
-    Mem(Mem),
+    Mem {
+        width: u16,
+        mem: Mem,
+    },
     Imm(Imm),
 }
 
@@ -18,7 +22,7 @@ impl std::fmt::Display for Operand {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Operand::Reg(reg) => write!(f, "{}", reg),
-            Operand::Mem(rm) => write!(f, "{}", rm),
+            Operand::Mem{width, mem} => write!(f, "{} {}", width_as_str(*width), mem),
             Operand::Imm(imm) => write!(f, "{}", imm),
         }
     }
@@ -28,14 +32,14 @@ impl Operand {
     pub fn width(&self) -> u16 {
         match self {
             Operand::Reg(reg) => reg.width(),
-            Operand::Mem(mem) => mem.width,
+            Operand::Mem{width,..} => *width,
             Operand::Imm(imm) => imm.width(),
         }
     }
 
     pub fn is_rm(&self) -> bool {
         match self {
-            Operand::Mem(_) | Operand::Reg(_) => true,
+            Operand::Mem{..} | Operand::Reg(_) => true,
             _ => false,
         }
     }
@@ -79,8 +83,20 @@ impl<R: RegEnc> TryFrom<Operand> for RM<R> {
             Operand::Reg(reg) => {
                 Ok(RM::Reg(R::from_id(reg.id())))
             },
-            Operand::Mem(mem) => {
-                todo!()
+            Operand::Mem{width: _, mem} => {
+                let mem = match mem {
+                    Mem::Mem { reg, disp } => RM::Mem { reg: R::from_id(reg.id()), disp: disp.clone() },
+                    Mem::Index { base, index, scale, disp } => {
+                        RM::Index {
+                            base: R::from_id(base.id()),
+                            index: R::from_id(index.id()),
+                            scale: *scale,
+                            disp: disp.clone()
+                        }
+                    },
+                    Mem::RIPDisp { disp32 } => RM::RIPDisp(*disp32),
+                };
+                Ok(mem)
             },
             _ => Err("Not Rm".into()),
         }

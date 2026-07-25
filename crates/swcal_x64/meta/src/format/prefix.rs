@@ -19,10 +19,10 @@ impl std::fmt::Display for Prefix {
 
 /// check 64bit long mode and 32bit compat need operand size override for 16bit
 pub fn legacy_prefix_66h(op_ecode: &OperandEncode) -> bool {
-    op_ecode.is_width::<16>()
+    op_ecode.is_all_width::<16>()
 }
 
 /// check 64bit long mode for 64bit operand
 pub fn legacy_prefix_rex_w(op_ecode: &OperandEncode) -> bool {
-    op_ecode.is_width::<64>()
+    op_ecode.is_exist_width::<64>()
 }

@@ -3,52 +3,57 @@ use crate::inst::base::RegEnc;
 use super::reg::*;
 use super::disp::*;
 
-/// width \[reg + (index * scale)? + (disp)?\]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Mem {
-    pub width: u16,
-    pub reg: Reg,
-    pub sib_opt: Option<(Reg, u8)>,
-    pub disp_opt: Option<Disp>,
+pub enum Mem {
+    Mem {
+        reg: Reg,
+        disp: Option<Disp>
+    },
+    Index{
+        base: Reg,
+        index: Reg,
+        scale: u8,
+        disp: Option<Disp>
+    },
+    RIPDisp{
+        disp32: i32
+    },
 }
 
 impl Mem {
 
     pub fn rex_b(&self) -> bool {
-        self.reg.is_extended()
+        match self {
+            Mem::Mem {reg, ..} => reg.is_extended(),
+            Mem::Index {base, ..} => base.is_extended(),
+            Mem::RIPDisp{..} => false,
+        }
     }
 
     pub fn rex_x(&self) -> bool {
-        self.sib_opt.is_some_and(|(r,_)| r.is_extended())
-    }
-
-    pub fn check_reg_valid(&self) -> bool {
-        if let Some((index, _)) = self.sib_opt {
-            index.is_extended() == self.reg.is_extended()
-        } else {
-            true
+        match self {
+            Mem::Mem {..} => false,
+            Mem::Index {base: _, index, .. } => index.is_extended(),
+            Mem::RIPDisp{..} => false,
         }
     }
 }
 
 impl std::fmt::Display for Mem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.width {
-            1 => write!(f, "byte")?,
-            2 => write!(f, "word")?,
-            4 => write!(f, "dword")?,
-            8 => write!(f, "qword")?,
-            _ => write!(f, "{}bit", self.width)?,
+        match self {
+            Mem::Mem { reg, disp } => {
+                let disp = disp.map(|x| format!(" + {}", x)).unwrap_or_default();
+                write!(f, "[{}{}]", reg, disp)
+            },
+            Mem::Index { base, index, scale, disp } => {
+                let disp = disp.map(|x| format!("+{}", x)).unwrap_or_default();
+                write!(f,"[{} + {} * {}{}]", base, index, scale, disp)
+            },
+            Mem::RIPDisp { disp32 } => {
+                write!(f, "[{}]", disp32)
+            },
         }
-        write!(f, " [")?;
-        write!(f, "{}", self.reg)?;
-        if let Some((index, scale)) = self.sib_opt {
-            write!(f, "+{index}*{scale}")?;
-        }
-        if let Some(disp) = self.disp_opt {
-            write!(f, "+{disp}")?;
-        }
-        write!(f, "]")
     }
 }
 

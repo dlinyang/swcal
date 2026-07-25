@@ -194,11 +194,11 @@ pub fn build_inst(src: &mut RustBuilder, instf: &InstFormat) {
             match instf.prefix {
                 Prefix::Legacy => {
                     src.line("//legacy prefix and rex prefix");
-                    if instf.encode.operand.is_width::<16>() {
+                    if legacy_prefix_66h(&instf.encode.operand) {
                         src.line("buf.putb(0x66);");
                     }
 
-                    src.line(format!("let rex_w = {};", instf.encode.operand.is_width::<64>()));
+                    src.line(format!("let rex_w = {};", legacy_prefix_rex_w(&instf.encode.operand)));
 
                     // check reg is extend
                     if let Some(var_name) = &reg_var_name && (!is_fixed_reg) && instf.encode.modrm != ModRMKind::Reg{

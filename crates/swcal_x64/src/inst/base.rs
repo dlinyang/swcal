@@ -17,3 +17,13 @@ impl RegEnc for u8 {
         (self & 0b1000) == 0b1000
     }
 }
+
+pub fn width_as_str(width: u16) -> String {
+    match width {
+        8 => format!("byte"),
+        16 => format!("word"),
+        32 => format!("dword"),
+        64 => format!("qword"),
+        _ => format!("{}bit", width),
+    }
+}

@@ -74,32 +74,46 @@ fn parse_operand(src: Text) -> ParseResult<Text, Operand> {
 }
 
 fn parse_operand_mem(src: Text) -> ParseResult<Text, Operand> {
-    let (mem, rest) = parse_mem(src)?;
-    Ok((Operand::Mem(mem), rest))
+    let (width_opt, rest) = lexeme(ws, parse_size_define).optional(src);
+    let (mem, rest) = parse_mem(rest)?;
+    Ok((Operand::Mem{width: width_opt.unwrap_or(0) ,mem}, rest))
 }
 
 fn parse_mem(src: Text) -> ParseResult<Text, Mem> {
-    let (width_opt, rest) = lexeme(ws, parse_size_define).optional(src);
-    let (_, rest) = lexeme(ws, char_pc('[')).parse(rest)?;
+    choice!(
+        parse_mem_index,
+        parse_mem_reg,
+        parse_mem_rip_disp
+    ).parse(src)
+}
+
+fn parse_mem_reg(src: Text) -> ParseResult<Text, Mem> {
+    let (_, rest) = lexeme(ws, char_pc('[')).parse(src)?;
     let (reg, rest) = parse_reg(rest)?;
-
-    let (sib_opt, rest) = lexeme(ws, char_pc('+'))
-        .then(parse_index_mul_scale.or(parse_index_only))
-        .optional(rest);
-
-    let (disp_opt, rest) = lexeme(ws, char_pc('+')).then(parse_disp).optional(rest);
-
+    let (disp, rest) = lexeme(ws, char_pc('+')).then(parse_disp).optional(rest);
     let (_, rest) = lexeme(ws, char_pc(']')).parse(rest)?;
+    // check reg
+    Ok((Mem::Mem { reg, disp }, rest))
+}
 
-    Ok((
-        Mem {
-            width: width_opt.unwrap_or(reg.width()),
-            reg,
-            sib_opt,
-            disp_opt,
-        },
-        rest,
-    ))
+fn parse_mem_index(src: Text) -> ParseResult<Text, Mem> {
+    let (_, rest) = lexeme(ws, char_pc('[')).parse(src)?;
+    let (base, rest) = parse_reg(rest)?;
+    let ((index, scale), rest) = lexeme(ws, char_pc('+'))
+        .then(parse_index_mul_scale.or(parse_index_only))
+        .parse(rest)?;
+    let (disp, rest) = lexeme(ws, char_pc('+')).then(parse_disp).optional(rest);
+    let (_, rest) = lexeme(ws, char_pc(']')).parse(rest)?;
+    // check reg
+    Ok((Mem::Index { base, index, scale, disp }, rest))
+}
+
+fn parse_mem_rip_disp(src: Text) -> ParseResult<Text, Mem> {
+    let (_, rest) = lexeme(ws, char_pc('[')).parse(src)?;
+    let (disp32, rest) = parse_disp32(rest)?;
+    let (_, rest) = lexeme(ws, char_pc(']')).parse(rest)?;
+    // check reg
+    Ok((Mem::RIPDisp { disp32}, rest))
 }
 
 fn parse_operand_reg(src: Text) -> ParseResult<Text, Operand> {
@@ -155,11 +169,11 @@ fn parse_signed_num_to_imm(src: Text) -> ParseResult<Text, Operand> {
     eprintln!("parse imm");
     let n = str::parse::<i64>(num.inner)
         .map_err(|_| ParseError::new(format!("wrong neg num {num}")))?;
-    let imm = if n >= i8::MIN as i64 {
+    let imm = if n >= i8::MIN as i64 && n <= i8::MAX as i64{
         Imm::Imm8(n as i8 as u8)
-    } else if n >= i16::MIN as i64 {
+    } else if n >= i16::MIN as i64 && n <= i16::MAX as i64{
         Imm::Imm16(n as i16 as u16)
-    } else if n >= i32::MIN as i64 {
+    } else if n >= i32::MIN as i64 && n <= i32::MAX as i64{
         Imm::Imm32(n as i32 as u32)
     } else {
         Imm::Imm64(n as u64)
@@ -173,9 +187,9 @@ fn parse_disp<'a>(src: Text<'a>) -> ParseResult<Text<'a>, Disp> {
     let n = str::parse::<i32>(num.inner)
         .map_err(|_| ParseError::new(format!("wrong neg num {num}")))?;
 
-    if n >= i8::MIN as i32 {
+    if n >= i8::MIN as i32 && n < i8::MAX as i32{
         Ok((Disp::Disp8(n as i8), rest))
-    } else if n >= i32::MIN {
+    } else if n >= i32::MIN && n <= i32::MAX {
         Ok((Disp::Disp32(n), rest))
     } else {
         Err(ParseError::new("wrong displace number"))
@@ -273,34 +287,17 @@ fn parse_label_address(src: Text) -> ParseResult<Text, (Label, Operand)> {
 
 fn parse_label_mem(src: Text) -> ParseResult<Text, (Label, Operand)> {
     let (width_opt, rest) = lexeme(ws, parse_size_define).optional(src);
-
     let (_, rest) = lexeme(ws, char_pc('[')).parse(rest)?;
-
-    let (name, rest) = lexeme(ws, label_name).parse(rest)?;
-    //TODO: [label - disp]
-    let (val, rest) = parse_label_disp
-        .preceded(lexeme(ws, char_pc('+')))
-        .optional(rest);
-
+    let (label, rest) = lexeme(ws, label_name).parse(rest)?;
+    let (disp_opt, rest) = parse_disp32.optional(rest);
     let (_, rest) = lexeme(ws, char_pc(']')).parse(rest)?;
-
-    let operand = Operand::Mem(Mem {
-        // size need check from top
-        width: width_opt.unwrap_or_default(),
-        reg: Reg::RBP,
-        sib_opt: None,
-        disp_opt: Some(Disp::Disp32(0)),
-    });
-
-    let label = Label::Mem {
-        name,
-        disp_opt: val,
-    };
-
-    Ok(((label, operand), rest))
+    Ok((
+        (Label::Mem { name: label, disp_opt }, Operand::Mem { width: width_opt.unwrap_or(0), mem: Mem::RIPDisp { disp32:0 } }),
+        rest
+    ))
 }
 
-fn parse_label_disp(src: Text) -> ParseResult<Text, i32> {
+fn parse_disp32(src: Text) -> ParseResult<Text, i32> {
     let (num, rest) = lexeme(ws, parse_signed).parse(src)?;
     let val = str::parse::<i32>(num.inner)
         .map_err(|_| ParseError::new(format!("unkown label displacement: {num}")))?;

@@ -35,3 +35,10 @@ pub fn xchg() -> Vec<InstFormat> {
         instf!("xchg", Legacy, opcode!(0x90), modrm_r(), reg(Fgr(0), u(64), RW), reg(Gpr, u(64), RW)),
     ]
 }
+
+pub fn nop() -> Vec<InstFormat> {
+    vec![
+        // nop
+        instf!("nop", Legacy, opcode!(0x90), no_modrm()),
+    ]
+}

@@ -1,4 +1,4 @@
-use std::{fmt::format, io::Write, path::Path};
+use std::{io::Write, path::Path};
 
 use crate::{format::*, generate::SrcGen};
 
@@ -56,7 +56,7 @@ fn generate_asmebler(src: &mut crate::generate::RustBuilder) {
                 for (mnemonic, _inst_codgen) in inst::inst_codegen_table() {
                     src.line(format!("\"{}\"=> asm_{}(inst),", mnemonic, mnemonic));
                 }
-                src.line(stringify!(_ => panic!(),));
+                src.line(stringify!(_ => panic!("unsupport instruction {}", inst.mnemonic),));
             });
     });
 
