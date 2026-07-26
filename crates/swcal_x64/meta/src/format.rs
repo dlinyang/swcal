@@ -153,10 +153,11 @@ pub fn build_inst(src: &mut RustBuilder, instf: &InstFormat) {
                 i += 1;
             }
 
-            // // no operand
-            // if i == 0 {
-            //     //check opera
-            // }
+            // no operand
+            if i == 0 {
+                //use inst
+                src.line("let _inst = inst;");
+            }
             src.paren("Ok", |src|{
                 src.block("Self", |src|
                     for operand in &operands {
@@ -169,6 +170,7 @@ pub fn build_inst(src: &mut RustBuilder, instf: &InstFormat) {
         src.function("pub fn encode(&self, buf: &mut impl CodeSink)", |src| {
             let mut reg_var_name = None;
             let mut rm_var_name = None;
+            let mut reloc_var_name = None;
             let mut imm_var_name = None;
             let mut is_fixed_reg = false;
 
@@ -187,6 +189,7 @@ pub fn build_inst(src: &mut RustBuilder, instf: &InstFormat) {
                     },
                     OperandKind::RM(_reg_kind, _rwattr) => rm_var_name = Some(operand.var_name()),
                     OperandKind::IMM => imm_var_name = Some(operand.var_name()),
+                    OperandKind::Rel => reloc_var_name = Some(operand.var_name()),
                     OperandKind::MOFFSET => {},
                 }
             }
@@ -262,6 +265,11 @@ pub fn build_inst(src: &mut RustBuilder, instf: &InstFormat) {
                 ModRMKind::Reg => {
                     src.line("//none modrm and reg encode in opcode");
                 },
+            }
+
+            if let Some(var_name) = &reloc_var_name {
+                src.line("//encode reloc");
+                src.line(format!("self.{}.encode(buf);",var_name));
             }
 
             // encode imm

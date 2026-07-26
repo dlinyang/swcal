@@ -15,14 +15,14 @@ fn main() {
                             match bin {
                                 Ok(bin) => {
                                     base += bin.len();
-                                    println!("{base:<8x} {bin:<15} {inst:<}");
+                                    println!("{base:<8x} {bin:50} {inst}");
                                 },
                                 Err(err) => {
                                     println!("error: {err} {inst}");
                                 },
                             }
                         }
-                        swcal_x64::el::Data::RawData(_items) => {}
+                        swcal_x64::el::Data::RawData{..} => {}
                         swcal_x64::el::Data::Res(_) => {}
                         swcal_x64::el::Data::Align(_) => {}
                     }

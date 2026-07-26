@@ -4,7 +4,7 @@ use Prefix::*;
 use RegKind::*;
 use RWAttr::*;
 
-pub fn xor() -> Vec<InstFormat> {
+pub fn bit_arith() -> Vec<InstFormat> {
     vec![
         // XOR r/m8, imm8 - 80 /6 ib
         instf!("xor", Legacy, opcode!(0x80), digit(6), rm(Gpr, u(8), W), imm_u(8)),
@@ -48,11 +48,8 @@ pub fn xor() -> Vec<InstFormat> {
         instf!("xor", Legacy, opcode!(0x35), modrm_r(), reg(Gpr, u(32), W), imm_u(32)),
         // XOR RAX, imm32 - 35 id (REX.W)
         instf!("xor", Legacy, opcode!(0x35), modrm_r(), reg(Gpr, u(64), W), imm_i(32)),
-    ]
-}
 
-pub fn shl() -> Vec<InstFormat> {
-    vec![
+
         // SHL r/m8, imm8 - C0 /4 ib
         instf!("shl", Legacy, opcode!(0xC0), digit(4), rm(Gpr, u(8), W), imm_u(8)),
         // SHL r/m16, imm8 - C1 /4 ib
@@ -79,11 +76,8 @@ pub fn shl() -> Vec<InstFormat> {
         instf!("shl", Legacy, opcode!(0xD3), digit(4), rm(Gpr, u(32), W), reg(Fgr(1), u(32), R)),
         // SHL r/m64, CL - D3 /4 (REX.W)
         instf!("shl", Legacy, opcode!(0xD3), digit(4), rm(Gpr, u(64), W), reg(Fgr(1), u(64), R)),
-    ]
-}
 
-pub fn shr() -> Vec<InstFormat> {
-    vec![
+
         // SHR r/m8, imm8 - C0 /5 ib
         instf!("shr", Legacy, opcode!(0xC0), digit(5), rm(Gpr, u(8), W), imm_u(8)),
         // SHR r/m16, imm8 - C1 /5 ib
@@ -110,11 +104,8 @@ pub fn shr() -> Vec<InstFormat> {
         instf!("shr", Legacy, opcode!(0xD3), digit(5), rm(Gpr, u(32), W), reg(Fgr(1), u(32), R)),
         // SHR r/m64, CL - D3 /5 (REX.W)
         instf!("shr", Legacy, opcode!(0xD3), digit(5), rm(Gpr, u(64), W), reg(Fgr(1), u(64), R)),
-    ]
-}
 
-pub fn sar() -> Vec<InstFormat> {
-    vec![
+
         // SAR r/m8, imm8 - C0 /7 ib
         instf!("sar", Legacy, opcode!(0xC0), digit(7), rm(Gpr, u(8), W), imm_u(8)),
         // SAR r/m16, imm8 - C1 /7 ib

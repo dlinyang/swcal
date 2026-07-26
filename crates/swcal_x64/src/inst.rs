@@ -9,6 +9,7 @@ pub mod mem;
 pub mod imm;
 pub mod disp;
 pub mod modrm;
+pub mod rel;
 
 use operand::*;
 
@@ -18,6 +19,12 @@ pub struct Inst {
     pub dst: Option<Operand>,
     pub src: Option<Operand>,
     pub src_ext: Option<Operand>,
+}
+
+impl Inst {
+    pub fn name(&self) -> String {
+        format!("{}", self.mnemonic)
+    }
 }
 
 #[inline]

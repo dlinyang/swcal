@@ -5,12 +5,13 @@ use RWAttr::*;
 
 pub fn jmp() -> Vec<InstFormat> {
     vec![
-        // JMP rel8 - EB cb (short jump, 8-bit relative offset)
-        instf!("jmp", Legacy, opcode!(0xEB), no_modrm(), imm_i(8)),
-        // JMP rel16 - E9 cw/cd (near jump, 16-bit relative offset)
-        instf!("jmp", Legacy, opcode!(0xE9), no_modrm(), imm_i(16)),
+        // not support jmp rel8 rel16 that i can scan once and generate code
+        // // JMP rel8 - EB cb (short jump, 8-bit relative offset)
+        // instf!("jmp", Legacy, opcode!(0xEB), no_modrm(), rel(8)),
+        // // JMP rel16 - E9 cw/cd (near jump, 16-bit relative offset)
+        // instf!("jmp", Legacy, opcode!(0xE9), no_modrm(), rel(16)),
         // JMP rel32 - E9 cw/cd (near jump, 32-bit relative offset)
-        instf!("jmp", Legacy, opcode!(0xE9), no_modrm(), imm_i(32)),
+        instf!("jmp", Legacy, opcode!(0xE9), no_modrm(), rel(32)),
         // JMP r/m16 - FF /4 (near jump, absolute indirect via register/memory)
         instf!("jmp", Legacy, opcode!(0xFF), digit(4), rm(Gpr, u(16), W)),
         // JMP r/m32 - FF /4 (near jump, absolute indirect via register/memory)
@@ -25,57 +26,42 @@ pub fn jmp() -> Vec<InstFormat> {
         instf!("jmp", Legacy, opcode!(0xFF), digit(5), rm(Gpr, u(16), W)),
         // JMP far m16:32 - FF /5 (far jump, indirect via memory)
         instf!("jmp", Legacy, opcode!(0xFF), digit(5), rm(Gpr, u(32), W)),
-    ]
-}
 
-pub fn je() -> Vec<InstFormat> {
-    vec![
+
         // JE rel8 - 74 cb (short jump, 8-bit relative offset)
-        instf!("je", Legacy, opcode!(0x74), no_modrm(), imm_i(8)),
+        instf!("je", Legacy, opcode!(0x74), no_modrm(), rel(8)),
         // JE rel16 - 0F 84 cw/cd (near jump, 16-bit relative offset)
-        instf!("je", Legacy, opcode!(0x0F, 0x84), no_modrm(), imm_i(16)),
+        instf!("je", Legacy, opcode!(0x0F, 0x84), no_modrm(), rel(16)),
         // JE rel32 - 0F 84 cw/cd (near jump, 32-bit relative offset)
-        instf!("je", Legacy, opcode!(0x0F, 0x84), no_modrm(), imm_i(32)),
-    ]
-}
+        instf!("je", Legacy, opcode!(0x0F, 0x84), no_modrm(), rel(32)),
 
-pub fn jnz() -> Vec<InstFormat> {
-    vec![
+
         // JNZ rel8 - 75 cb (short jump, 8-bit relative offset)
-        instf!("jnz", Legacy, opcode!(0x75), no_modrm(), imm_i(8)),
+        instf!("jnz", Legacy, opcode!(0x75), no_modrm(), rel(8)),
         // JNZ rel16 - 0F 85 cw/cd (near jump, 16-bit relative offset)
-        instf!("jnz", Legacy, opcode!(0x0F, 0x85), no_modrm(), imm_i(16)),
+        instf!("jnz", Legacy, opcode!(0x0F, 0x85), no_modrm(), rel(16)),
         // JNZ rel32 - 0F 85 cw/cd (near jump, 32-bit relative offset)
-        instf!("jnz", Legacy, opcode!(0x0F, 0x85), no_modrm(), imm_i(32)),
-    ]
-}
+        instf!("jnz", Legacy, opcode!(0x0F, 0x85), no_modrm(), rel(32)),
 
-pub fn jl() -> Vec<InstFormat> {
-    vec![
+
         // JL rel8 - 7C cb (short jump, 8-bit relative offset)
-        instf!("jl", Legacy, opcode!(0x7C), no_modrm(), imm_i(8)),
+        instf!("jl", Legacy, opcode!(0x7C), no_modrm(), rel(8)),
         // JL rel16 - 0F 8C cw/cd (near jump, 16-bit relative offset)
-        instf!("jl", Legacy, opcode!(0x0F, 0x8C), no_modrm(), imm_i(16)),
+        instf!("jl", Legacy, opcode!(0x0F, 0x8C), no_modrm(), rel(16)),
         // JL rel32 - 0F 8C cw/cd (near jump, 32-bit relative offset)
-        instf!("jl", Legacy, opcode!(0x0F, 0x8C), no_modrm(), imm_i(32)),
-    ]
-}
+        instf!("jl", Legacy, opcode!(0x0F, 0x8C), no_modrm(), rel(32)),
 
-pub fn jge() -> Vec<InstFormat> {
-    vec![
+
         // JGE rel8 - 7D cb (short jump, 8-bit relative offset)
-        instf!("jge", Legacy, opcode!(0x7D), no_modrm(), imm_i(8)),
+        instf!("jge", Legacy, opcode!(0x7D), no_modrm(), rel(8)),
         // JGE rel16 - 0F 8D cw/cd (near jump, 16-bit relative offset)
-        instf!("jge", Legacy, opcode!(0x0F, 0x8D), no_modrm(), imm_i(16)),
+        instf!("jge", Legacy, opcode!(0x0F, 0x8D), no_modrm(), rel(16)),
         // JGE rel32 - 0F 8D cw/cd (near jump, 32-bit relative offset)
-        instf!("jge", Legacy, opcode!(0x0F, 0x8D), no_modrm(), imm_i(32)),
-    ]
-}
+        instf!("jge", Legacy, opcode!(0x0F, 0x8D), no_modrm(), rel(32)),
 
-pub fn cmp() -> Vec<InstFormat> {
+
     // CMP instruction forms comparing register/memory with register, immediate, and accumulator
     // All standard CMP opcodes and operand types for 8/16/32/64-bit modes
-    vec![
         // CMP r/m8, imm8 - 80 /7 ib
         instf!("cmp", Legacy, opcode!(0x80), digit(7), rm(Gpr, u(8), W), imm_u(8)),
         // CMP r/m16, imm16 - 81 /7 iw
@@ -118,15 +104,12 @@ pub fn cmp() -> Vec<InstFormat> {
         instf!("cmp", Legacy, opcode!(0x3B), modrm(), reg(Gpr, u(32), W), rm(Gpr, u(32), R)),
         // CMP r64, r/m64 - 3B /r (REX.W)
         instf!("cmp", Legacy, opcode!(0x3B), modrm(), reg(Gpr, u(64), W), rm(Gpr, u(64), R)),
-    ]
-}
 
-pub fn loop_inst() -> Vec<InstFormat> {
-    vec![
+
         // LOOP rel8 - E2 cb (decrement count, jump if RCX/ECX/CX != 0)
-        instf!("loop", Legacy, opcode!(0xE2), no_modrm(), imm_i(8)),
-        // // LOOPE rel8 - E1 cb (decrement count, jump if RCX/ECX/CX != 0 and ZF=1)
-        // instf!("loope", Legacy, opcode!(0xE1), no_modrm(), imm_i(8)),
+        instf!("loop", Legacy, opcode!(0xE2), no_modrm(), rel(8)),
+        // LOOPE rel8 - E1 cb (decrement count, jump if RCX/ECX/CX != 0 and ZF=1)
+        instf!("loope", Legacy, opcode!(0xE1), no_modrm(), rel(8)),
         // // LOOPNE rel8 - E0 cb (decrement count, jump if RCX/ECX/CX != 0 and ZF=0)
         // instf!("loopne", Legacy, opcode!(0xE0), no_modrm(), imm_i(8)),
         // // // LOOPW rel8 - 67 E2 cb (decrement CX, 16-bit address size override)

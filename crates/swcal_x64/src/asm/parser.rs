@@ -2,14 +2,17 @@ use crate::asm::data::*;
 use crate::asm::inst::*;
 use crate::asm::lexer::*;
 use crate::el::*;
-use crate::inst::Inst;
+use crate::inst::{*, base::*};
+use crate::reloc::PreRelocation;
+// use crate::inst::operand::Operand;
+// use crate::inst::operand_is_imm;
 use tinyparsec::parsec::*;
 use tinyparsec::text::*;
 use tinyparsec::*;
 
-pub fn parse(src: &str) -> ParseResult<(), EL> {
+pub fn parse(src: &str) -> ParseResult<(), PreEL> {
     let mut text = Text::new(src, Default::default());
-    let mut el = EL::new();
+    let mut el = PreEL::new();
     let mut section = Section::new();
     while text.inner.len() > 0 {
         let (_, rest) = many0(empty_line.or(ws_or_comment)).parse(text)?;
@@ -47,20 +50,26 @@ pub fn parse(src: &str) -> ParseResult<(), EL> {
                 section.data.push(Data::Align(align));
             }
             AsmStmt::Label(name) => {
-                section.labels.push((name, section.data.len()));
+                // section.labels.push((name, section.data.len()));
+                el.labels.insert(name, (el.sections.len(), section.data.len()));
             }
             AsmStmt::Global(name) => {
                 el.globals.push(name);
             }
             AsmStmt::Data(name, data) => {
-                section.labels.push((name, section.data.len()));
+                el.labels.insert(name, (el.sections.len(), section.data.len()));
+                // section.labels.push((name, section.data.len()));
                 section.data.push(data);
             }
             AsmStmt::Inst{inst, label} => {
-                section.data.push(Data::Inst(inst));
-                if let Some(_label) = label {
+                if let Some(label) = label {
+                    // el.relocation.push(PreRelocation{
+                    //     label_name: label.,
+                    // });
+                    //relocation
                     // section.labels.push(label);
                 }
+                section.data.push(Data::Inst(inst));
             }
         }
         text = rest;
@@ -77,13 +86,16 @@ pub enum AsmStmt {
     Label(String),
     Global(String),
     Data(String, Data),
-    Inst{inst: Inst, label: Option<Label>},
+    Inst{
+        inst: Inst,
+        label: Option<Label>
+    },
 }
 
 fn parse_section_stmt<'a>(src: Text<'a>) -> ParseResult<Text<'a>, AsmStmt> {
     let (_, rest) = lexeme(ws, keyworld("section")).terminated(ws).parse(src)?;
     let (name, rest) = section_name(rest)?;
-    println!("parse section {name}");
+    // println!("parse section {name}");
 
     Ok((AsmStmt::Section(name), rest))
 }

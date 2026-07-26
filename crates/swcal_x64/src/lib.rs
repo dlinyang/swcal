@@ -1,4 +1,5 @@
 pub mod el;
+pub mod reloc;
 pub mod inst;
 pub mod asm;
 
@@ -11,6 +12,7 @@ pub mod codegen {
     use crate::inst::gpr::*;
     use crate::inst::imm::*;
     use crate::inst::modrm::*;
+    use crate::inst::rel::*;
     include!(concat!(env!("OUT_DIR"),"/inst_info.rs"));
     include!(concat!(env!("OUT_DIR"),"/codegen.rs"));
 }

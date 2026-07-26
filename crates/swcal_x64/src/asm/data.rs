@@ -32,7 +32,7 @@ fn parse_data_byte<'a>(src: Text<'a>) -> ParseResult<Text<'a>, Token<Data>> {
         data.inner.append(&mut a_data.inner);
         rest = a_rest;
     }
-    Ok((Token::new(Data::RawData(data.inner), data.text_pos), rest))
+    Ok((Token::new(Data::RawData{ width: 8, data: data.inner}, data.text_pos), rest))
 }
 
 fn parse_one_db_val<'a>(src: Text<'a>) -> ParseResult<Text<'a>, Token<Vec<u8>>> {
@@ -57,7 +57,7 @@ fn parse_data_word<'a>(src: Text<'a>) -> ParseResult<Text<'a>, Token<Data>> {
         str2val2byte::<u16>(parse_bin, 2),
         str2val2byte::<u16>(parse_dex, 10)
     ))
-    .parse(rest).map(|(x, rest)| (Token::new(Data::RawData(x.inner), x.text_pos), rest))
+    .parse(rest).map(|(x, rest)| (Token::new(Data::RawData{width: 16, data: x.inner}, x.text_pos), rest))
 }
 
 fn parse_data_double_word<'a>(src: Text<'a>) -> ParseResult<Text<'a>, Token<Data>> {
@@ -70,7 +70,7 @@ fn parse_data_double_word<'a>(src: Text<'a>) -> ParseResult<Text<'a>, Token<Data
         str2val2byte::<u32>(parse_bin, 2),
         str2val2byte::<u32>(parse_dex, 10)
     ))
-    .parse(rest).map(|(x, rest)| (Token::new(Data::RawData(x.inner), x.text_pos), rest))
+    .parse(rest).map(|(x, rest)| (Token::new(Data::RawData{width: 32, data: x.inner}, x.text_pos), rest))
 }
 
 fn parse_data_quadra_word<'a>(src: Text<'a>) -> ParseResult<Text<'a>, Token<Data>> {
@@ -83,7 +83,7 @@ fn parse_data_quadra_word<'a>(src: Text<'a>) -> ParseResult<Text<'a>, Token<Data
         str2val2byte::<u64>(parse_bin, 2),
         str2val2byte::<u64>(parse_dex, 10)
     ))
-    .parse(rest).map(|(x, rest)| (Token::new(Data::RawData(x.inner), x.text_pos), rest))
+    .parse(rest).map(|(x, rest)| (Token::new(Data::RawData{width: 64, data: x.inner}, x.text_pos), rest))
 }
 
 fn parse_data_res<'a>(src: Text<'a>, res_type: &'a str, type_size: u64) -> ParseResult<Text<'a>, Token<u64>> {

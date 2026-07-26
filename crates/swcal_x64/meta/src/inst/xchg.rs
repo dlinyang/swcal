@@ -33,11 +33,6 @@ pub fn xchg() -> Vec<InstFormat> {
         instf!("xchg", Legacy, opcode!(0x90), modrm_r(), reg(Fgr(0), u(32), RW), reg(Gpr, u(32), RW)),
         // XCHG r64, eAX/rax (0x91-0x97, same encoding as 90+rd, for completeness with rax as second operand)
         instf!("xchg", Legacy, opcode!(0x90), modrm_r(), reg(Fgr(0), u(64), RW), reg(Gpr, u(64), RW)),
-    ]
-}
-
-pub fn nop() -> Vec<InstFormat> {
-    vec![
         // nop
         instf!("nop", Legacy, opcode!(0x90), no_modrm()),
     ]

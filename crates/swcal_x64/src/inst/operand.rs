@@ -7,8 +7,9 @@ use crate::inst::gpr::Gpr;
 use super::reg::*;
 use super::mem::*;
 use super::imm::*;
+use super::rel::*;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy)]
 pub enum Operand {
     Reg(Reg),
     Mem {
@@ -16,6 +17,8 @@ pub enum Operand {
         mem: Mem,
     },
     Imm(Imm),
+    /// Label is a placeholder for address
+    Label,
 }
 
 impl std::fmt::Display for Operand {
@@ -24,6 +27,7 @@ impl std::fmt::Display for Operand {
             Operand::Reg(reg) => write!(f, "{}", reg),
             Operand::Mem{width, mem} => write!(f, "{} {}", width_as_str(*width), mem),
             Operand::Imm(imm) => write!(f, "{}", imm),
+            Operand::Label => write!(f, "label:"),
         }
     }
 }
@@ -34,6 +38,9 @@ impl Operand {
             Operand::Reg(reg) => reg.width(),
             Operand::Mem{width,..} => *width,
             Operand::Imm(imm) => imm.width(),
+            // label may abs label: mov rax, label
+            // or rel label addr: jmp label
+            Operand::Label => 64,
         }
     }
 
@@ -103,13 +110,14 @@ impl<R: RegEnc> TryFrom<Operand> for RM<R> {
     }
 }
 
-macro_rules! impl_try_info_imm {
+macro_rules! impl_try_into_imm {
     ($imm: ty) => {
         impl TryFrom<Operand> for $imm {
             type Error = String;
             fn try_from(value: Operand) -> Result<Self, Self::Error> {
                 match value {
                     Operand::Imm(imm) => Self::try_from(imm),
+                    Operand::Label => Ok(Self::new(0)),
                     _ => Err("Not IMM".into())
                 }
             }
@@ -118,10 +126,29 @@ macro_rules! impl_try_info_imm {
     };
 }
 
-impl_try_info_imm!(Imm8);
-impl_try_info_imm!(Imm16);
-impl_try_info_imm!(Imm32);
-impl_try_info_imm!(Imm64);
+impl_try_into_imm!(Imm8);
+impl_try_into_imm!(Imm16);
+impl_try_into_imm!(Imm32);
+impl_try_into_imm!(Imm64);
+
+macro_rules! impl_try_into_rel {
+    ($rel: ty) => {
+        impl TryFrom<Operand> for $rel {
+            type Error = String;
+            fn try_from(value: Operand) -> Result<Self, Self::Error> {
+                match value {
+                    Operand::Imm(imm) => Self::try_from(imm),
+                    Operand::Label => Ok(Self::new(0)),
+                    _ => Err("Not Rel".into())
+                }
+            }
+        }
+    };
+}
+
+impl_try_into_rel!(Rel8);
+impl_try_into_rel!(Rel16);
+impl_try_into_rel!(Rel32);
 
 impl<const N: u8> TryFrom<Operand> for FixedGpr<N> {
     type Error = String;

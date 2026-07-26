@@ -3,10 +3,10 @@ use Prefix::*;
 use RegKind::*;
 use RWAttr::*;
 
-pub fn and() -> Vec<InstFormat> {
+pub fn bool_arith() -> Vec<InstFormat> {
+    vec![
     // AND instruction forms covering register, memory, and immediate variants
     // All standard AND opcodes and operand types for 16/32/64-bit modes
-    vec![
         // AND AL, imm8 - 24 ib (accumulator)
         instf!("and", Legacy, opcode!(0x24), no_modrm(), reg(Fgr(0), u(8), W), imm_u(8)),
         // AND AX, imm16 - 25 iw
@@ -49,13 +49,10 @@ pub fn and() -> Vec<InstFormat> {
         instf!("and", Legacy, opcode!(0x23), modrm(), reg(Gpr, u(32), W), rm(Gpr, u(32), R)),
         // AND r64, r/m64 - 23 /r (REX.W)
         instf!("and", Legacy, opcode!(0x23), modrm(), reg(Gpr, u(64), W), rm(Gpr, u(64), R)),
-    ]
-}
 
-pub fn or() -> Vec<InstFormat> {
+
     // OR instruction forms covering register, memory, and immediate variants
     // All standard OR opcodes and operand types for 16/32/64-bit modes
-    vec![
         // OR AL, imm8 - 0C ib (accumulator)
         instf!("or", Legacy, opcode!(0x0C), no_modrm(), reg(Fgr(0), u(8), W), imm_u(8)),
         // OR AX, imm16 - 0D iw
@@ -98,13 +95,10 @@ pub fn or() -> Vec<InstFormat> {
         instf!("or", Legacy, opcode!(0x0B), modrm(), reg(Gpr, u(32), W), rm(Gpr, u(32), R)),
         // OR r64, r/m64 - 0B /r (REX.W)
         instf!("or", Legacy, opcode!(0x0B), modrm(), reg(Gpr, u(64), W), rm(Gpr, u(64), R)),
-    ]
-}
 
-pub fn not() -> Vec<InstFormat>{
+
     // NOT instruction forms - bitwise NOT (one's complement)
     // All standard NOT opcodes and operand types for 8/16/32/64-bit modes
-    vec![
         // NOT r/m8 - F6 /2
         instf!("not", Legacy, opcode!(0xF6), digit(2), rm(Gpr, u(8), RW)),
         // NOT r/m16 - F7 /2

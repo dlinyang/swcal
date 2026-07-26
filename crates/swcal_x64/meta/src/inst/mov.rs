@@ -5,9 +5,9 @@ use RWAttr::*;
 
 #[must_use]
 pub fn mov() -> Vec<InstFormat> {
-    // MOV instruction forms covering register, memory, immediate, and accumulator variants
-    // All standard MOV opcodes and operand types for 16/32/64-bit modes
     vec![
+        // MOV instruction forms covering register, memory, immediate, and accumulator variants
+        // All standard MOV opcodes and operand types for 16/32/64-bit modes
         // MOV r/m8, imm8 - C6 /0 ib
         instf!("mov", Legacy, opcode!(0xC6), digit(0), rm(Gpr, u(8), W), imm_u(8)),
         // MOV r/m16, imm16 - C7 /0 iw  (16-bit)
@@ -66,13 +66,9 @@ pub fn mov() -> Vec<InstFormat> {
         // InstFormat::new("mov", Prefix::Legacy, opcode!(0x8C), EncodeKind::ModRM, 16, OperandKind::Reg2RM),
         // // MOV sreg, r/m16 - 8E /r (r/m to segment register)
         // InstFormat::new("mov", Prefix::Legacy, opcode!(0x8E), EncodeKind::ModRM, 16, OperandKind::RM2Reg),
-    ]
-}
 
-#[must_use]
-pub fn movsx() -> Vec<InstFormat> {
-    // MOVSX instruction formats
-    vec![
+
+        // MOVSX instruction formats
         // MOVSX r16, r/m8  - 0F BE /r
         instf!("movsx", Legacy, opcode!(0x0F, 0xBE), modrm(), reg(Gpr, u(16), W), rm(Gpr, i(8), R)),
         // MOVSX r32, r/m8  - 0F BE /r
@@ -83,13 +79,9 @@ pub fn movsx() -> Vec<InstFormat> {
         instf!("movsx", Legacy, opcode!(0x0F, 0xBF), modrm(), reg(Gpr, u(32), W), rm(Gpr, i(16), R)),
         // MOVSX r64, r/m16 - 0F BF /r (REX.W)
         instf!("movsx", Legacy, opcode!(0x0F, 0xBF), modrm(), reg(Gpr, u(64), W), rm(Gpr, i(16), R)),
-    ]
-}
 
-#[must_use]
-pub fn movzx() -> Vec<InstFormat> {
-    // MOVZX instruction formats
-    vec![
+
+        // MOVZX instruction formats
         // MOVZX r16, r/m8  - 0F B6 /r
         instf!("movzx", Legacy, opcode!(0x0F, 0xB6), modrm(), reg(Gpr, u(16), W), rm(Gpr, u(8), R)),
         // MOVZX r32, r/m8  - 0F B6 /r

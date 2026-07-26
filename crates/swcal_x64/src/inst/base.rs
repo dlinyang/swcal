@@ -27,3 +27,10 @@ pub fn width_as_str(width: u16) -> String {
         _ => format!("{}bit", width),
     }
 }
+
+#[derive(Debug, Clone)]
+pub enum Label {
+    // disp can be i64
+    Addr{ name: String, disp: i32 },
+    Mem { name: String, disp: i32 },
+}

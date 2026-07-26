@@ -127,6 +127,7 @@ pub enum OperandKind {
     Reg(RegKind,RWAttr),
     RM(RegKind,RWAttr),
     IMM,
+    Rel,
     MOFFSET,
 }
 
@@ -140,7 +141,8 @@ impl SrcGen for OperandKind {
             OperandKind::Reg(..) => "R".into(),
             OperandKind::RM(..) => "M".into(),
             OperandKind::IMM => "I".into(),
-            OperandKind::MOFFSET => "D".into(),
+            OperandKind::Rel => "D".into(),
+            OperandKind::MOFFSET => "O".into(),
         }
     }
 
@@ -156,6 +158,7 @@ impl std::fmt::Display for OperandKind {
             OperandKind::RM(_, _) => write!(f, "reg/mem"),
             OperandKind::IMM => write!(f, "imm"),
             OperandKind::MOFFSET => write!(f, "moffset"),
+            OperandKind::Rel => write!(f, "rel"),
         }
     }
 }
@@ -192,6 +195,7 @@ impl SrcGen for OperandFormat {
             OperandKind::Reg(reg_kind, _rwattr) => format!("{}{}", reg_kind.var_name(), self.val_ty.width()),
             OperandKind::RM(_reg_kind, _rwattr) => format!("rm{}", self.val_ty.width()),
             OperandKind::IMM => format!("imm{}", self.val_ty.width()),
+            OperandKind::Rel => format!("rel{}", self.val_ty.width()),
             OperandKind::MOFFSET => todo!(),
         }
     }
@@ -201,6 +205,7 @@ impl SrcGen for OperandFormat {
             OperandKind::Reg(reg_kind, _rwattr) => format!("{}", reg_kind.type_name()),
             OperandKind::RM(reg_kind, _rwattr) => format!("RM<{}>", reg_kind.type_name()),
             OperandKind::IMM => format!("Imm{}", self.val_ty.width()),
+            OperandKind::Rel => format!("Rel{}", self.val_ty.width()),
             OperandKind::MOFFSET => format!("Moffset{}", self.val_ty.width()),
         }
     }
@@ -228,6 +233,10 @@ pub fn imm_i(bit: u16) -> OperandFormat {
 
 pub fn imm_f(bit: u16) -> OperandFormat {
     OperandFormat { ty: OperandKind::IMM, val_ty: f(bit)}
+}
+
+pub fn rel(bit: u16) -> OperandFormat {
+    OperandFormat { ty: OperandKind::Rel, val_ty: i(bit)}
 }
 
 #[derive(Clone, Copy)]

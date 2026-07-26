@@ -4,7 +4,7 @@ use Prefix::*;
 use RegKind::*;
 use RWAttr::*;
 
-pub fn add() -> Vec<InstFormat> {
+pub fn arith() -> Vec<InstFormat> {
     vec![
         // ADD r/m8, imm8 - 80 /0 ib
         instf!("add", Legacy, opcode!(0x80), digit(0), rm(Gpr, u(8), RW), imm_u(8)),
@@ -48,13 +48,9 @@ pub fn add() -> Vec<InstFormat> {
         instf!("add", Legacy, opcode!(0x03), modrm(), reg(Gpr, u(32), RW), rm(Gpr, u(32), R)),
         // ADD r64, r/m64 - 03 /r (REX.W)
         instf!("add", Legacy, opcode!(0x03), modrm(), reg(Gpr, u(64), RW), rm(Gpr, u(64), R)),
-    ]
-}
 
-pub fn sub() -> Vec<InstFormat> {
-    // SUB instruction forms covering register, memory, and immediate variants
-    // All standard SUB opcodes and operand types for 16/32/64-bit modes
-    vec![
+        // SUB instruction forms covering register, memory, and immediate variants
+        // All standard SUB opcodes and operand types for 16/32/64-bit modes
         // SUB r/m8, imm8 - 80 /5 ib
         instf!("sub", Legacy, opcode!(0x80), digit(5), rm(Gpr, u(8), RW), imm_u(8)),
         // SUB r/m16, imm16 - 81 /5 iw
@@ -97,13 +93,10 @@ pub fn sub() -> Vec<InstFormat> {
         // InstFormat::new("sub", Legacy, opcode!(0x2D), EncodeKind::ModRM, 4, OperandKind::ImmAcc),
         // // SUB RAX, imm32 - 2D id (sign-extended to 64-bit, REX.W)
         // InstFormat::new("sub", Legacy, opcode!(0x2D), EncodeKind::ModRM, 4, OperandKind::ImmAcc),
-    ]
-}
 
-pub fn inc() -> Vec<InstFormat> {
-    // INC instruction forms covering register and memory variants for 8/16/32/64-bit modes
-    // All standard INC opcodes and operand types
-    vec![
+
+        // INC instruction forms covering register and memory variants for 8/16/32/64-bit modes
+        // All standard INC opcodes and operand types
         // INC r/m8 - FE /0
         instf!("inc", Legacy, opcode!(0xFE), digit(0), rm(Gpr, u(8), RW)),
         // INC r/m16 - FF /0
@@ -112,13 +105,9 @@ pub fn inc() -> Vec<InstFormat> {
         instf!("inc", Legacy, opcode!(0xFF), digit(0), rm(Gpr, u(32), RW)),
         // INC r/m64 - FF /0 (REX.W)
         instf!("inc", Legacy, opcode!(0xFF), digit(0), rm(Gpr, u(64), RW)),
-    ]
-}
 
-pub fn dec() -> Vec<InstFormat> {
-    // DEC instruction forms covering register and memory variants for 8/16/32/64-bit modes
-    // All standard DEC opcodes and operand types
-    vec![
+        // DEC instruction forms covering register and memory variants for 8/16/32/64-bit modes
+        // All standard DEC opcodes and operand types
         // DEC r/m8 - FE /1
         instf!("dec", Legacy, opcode!(0xFE), digit(1), rm(Gpr, u(8), RW)),
         // DEC r/m16 - FF /1
@@ -127,14 +116,10 @@ pub fn dec() -> Vec<InstFormat> {
         instf!("dec", Legacy, opcode!(0xFF), digit(1), rm(Gpr, u(32), RW)),
         // DEC r/m64 - FF /1 (REX.W)
         instf!("dec", Legacy, opcode!(0xFF), digit(1), rm(Gpr, u(64), RW)),
-    ]
-}
 
-pub fn mul() -> Vec<InstFormat> {
-    // MUL instruction forms - unsigned multiply
-    // Note: MUL always implicitly uses AL/AX/EAX/RAX as the source and stores the result
-    // in AX (8-bit), DX:AX (16-bit), EDX:EAX (32-bit), or RDX:RAX (64-bit)
-    vec![
+        // MUL instruction forms - unsigned multiply
+        // Note: MUL always implicitly uses AL/AX/EAX/RAX as the source and stores the result
+        // in AX (8-bit), DX:AX (16-bit), EDX:EAX (32-bit), or RDX:RAX (64-bit)
         // MUL r/m8 - F6 /4 (AX = AL * r/m8)
         instf!("mul", Legacy, opcode!(0xF6), digit(4), rm(Gpr, u(8), R)),
         // MUL r/m16 - F7 /4 (DX:AX = AX * r/m16)
@@ -143,16 +128,12 @@ pub fn mul() -> Vec<InstFormat> {
         instf!("mul", Legacy, opcode!(0xF7), digit(4), rm(Gpr, u(32), R)),
         // MUL r/m64 - F7 /4 (REX.W) (RDX:RAX = RAX * r/m64)
         instf!("mul", Legacy, opcode!(0xF7), digit(4), rm(Gpr, u(64), R)),
-    ]
-}
 
-pub fn imul() -> Vec<InstFormat> {
-    // IMUL instruction forms - signed multiply
-    // Three main forms exist:
-    // 1. Single-operand: IMUL r/m (implicit AX/EAX/RAX * r/m)
-    // 2. Two-operand: IMUL r, r/m (reg = reg * r/m)
-    // 3. Three-operand: IMUL r, r/m, imm (reg = r/m * imm)
-    vec![
+        // IMUL instruction forms - signed multiply
+        // Three main forms exist:
+        // 1. Single-operand: IMUL r/m (implicit AX/EAX/RAX * r/m)
+        // 2. Two-operand: IMUL r, r/m (reg = reg * r/m)
+        // 3. Three-operand: IMUL r, r/m, imm (reg = r/m * imm)
         // Single-operand forms (implicit accumulator):
         // IMUL r/m8 - F6 /5 (AX = AL * r/m8, signed)
         instf!("imul", Legacy, opcode!(0xF6), digit(5), rm(Gpr, u(8), R)),
@@ -183,14 +164,11 @@ pub fn imul() -> Vec<InstFormat> {
         instf!("imul", Legacy, opcode!(0x69), modrm(), reg(Gpr, u(32), RW), rm(Gpr, u(32), R), imm_u(32)),
         // IMUL r64, r/m64, imm32 - 69 /r id (sign-extended to 64-bit, REX.W)
         instf!("imul", Legacy, opcode!(0x69), modrm(), reg(Gpr, i(64), RW), rm(Gpr, i(64), R), imm_i(32)),
-    ]
-}
 
-pub fn div() -> Vec<InstFormat> {
     // DIV instruction forms - unsigned divide
     // Note: DIV always implicitly uses AX/DX:AX/EDX:EAX/RDX:RAX as the dividend and stores
     // the quotient in AL/AX/EAX/RAX and remainder in AH/DX/EDX/RDX
-    vec![
+
         // DIV r/m8 - F6 /6 (AX = AL / r/m8, AH = remainder)
         instf!("div", Legacy, opcode!(0xF6), digit(6), rm(Gpr, u(8), R)),
         // DIV r/m16 - F7 /6 (AX = DX:AX / r/m16, DX = remainder)

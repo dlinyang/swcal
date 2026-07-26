@@ -119,9 +119,7 @@ impl CodeSink for InstBin {
 
 impl std::fmt::Display for InstBin {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for byte in self.data[..self.len].iter() {
-            write!(f, "{:02x} ", byte)?;
-        }
-        Ok(())
+        let ctx = self.data[..self.len].iter().map(|b| format!("{:02x}", b)).collect::<Vec<String>>().join(" ");
+        f.pad(ctx.as_str())
     }
 }

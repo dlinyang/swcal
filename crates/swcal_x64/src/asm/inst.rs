@@ -1,6 +1,6 @@
 use crate::asm::data::*;
 use crate::asm::lexer::*;
-use crate::inst::{*, operand::*, reg::*, mem::*, disp::*, imm::*};
+use crate::inst::{*, base::*, operand::*, reg::*, mem::*, disp::*, imm::*};
 use std::str::FromStr;
 use tinyparsec::choice;
 use tinyparsec::parsec::*;
@@ -39,13 +39,31 @@ pub fn parse_inst_label_opt(src: Text) -> ParseResult<Text, (Option<Label>, Inst
         (None, None)
     };
 
-    // // TODO: fix label's mem access's width
-    // let (dst, src, src_ext) = match (dlabel, slabel, selabel) {
-    //     (None, None, Some(label)) => {todo!()},
-    //     (None, Some(label), None) => {todo!()},
-    //     (Some(label), None, None) => {todo!()},
-    //     _ => (None, None, None),
-    // };
+    // TODO: fix label's mem access's width
+    let (dst, src, src_ext) = match (&dlabel, &slabel, &selabel) {
+        (None, None, Some(_)) => {
+            todo!()
+        },
+        (None, Some(_), None) => {
+            let src = if let Some(Operand::Mem { width:_, mem }) = src {
+                Some(Operand::Mem { width: dst.unwrap().width(), mem })
+            }
+            else {
+                src
+            };
+            (dst, src, src_ext)
+        },
+        (Some(_), None, None) => {
+            let dst = if let Some(Operand::Mem { width:_, mem }) = dst {
+                Some(Operand::Mem { width: src.unwrap().width(), mem })
+            }
+            else {
+                dst
+            };
+            (dst, src, src_ext)
+        },
+        _ => (dst, src, src_ext),
+    };
 
     let label = match (dlabel, slabel, selabel) {
         (None, None, None) => None,
@@ -166,7 +184,6 @@ fn parse_imm<'a>(src: Text<'a>) -> ParseResult<Text<'a>, Operand> {
 
 fn parse_signed_num_to_imm(src: Text) -> ParseResult<Text, Operand> {
     let (num, rest) = parse_signed(src)?;
-    eprintln!("parse imm");
     let n = str::parse::<i64>(num.inner)
         .map_err(|_| ParseError::new(format!("wrong neg num {num}")))?;
     let imm = if n >= i8::MIN as i64 && n <= i8::MAX as i64{
@@ -216,12 +233,6 @@ fn parse_index_only(src: Text) -> ParseResult<Text, (Reg, u8)> {
     parse_reg(src).map(|(reg, rest)| ((reg, 1), rest))
 }
 
-#[derive(Debug)]
-pub enum Label {
-    Addr(String),
-    Mem { name: String, disp_opt: Option<i32> },
-}
-
 fn parse_size_define(src: Text) -> ParseResult<Text, u16> {
     choice!(
         parse_size_define_pc("byte", 8),
@@ -237,29 +248,29 @@ fn parse_size_define_pc<'a>(key: &'a str, width: u16) -> impl ParsecT<Text<'a>, 
     move |input| keyworld(key).parse(input).map(|(_, rest)| (width, rest))
 }
 
-/// Inst like ```  lea rax, [label] ```
-pub fn parse_inst_with_label(src: Text) -> ParseResult<Text, (Label, Inst)> {
-    let (mnemonic_tok, rest) = lexeme(ws, mnemonic_name).terminated(ws).parse(src)?;
-    let (dst, rest) = parse_operand
-        .terminated(lexeme(ws, char_pc(',')))
-        .optional(rest);
-    let (src, rest) = parse_operand.optional(rest);
-    let (src_ext, rest) = parse_operand
-        .preceded(lexeme(ws, char_pc(',')))
-        .optional(rest);
-    Ok((
-        (
-            Label::Addr("f".to_string()),
-            Inst {
-                mnemonic: mnemonic_tok.inner.to_string(),
-                dst,
-                src,
-                src_ext,
-            },
-        ),
-        rest,
-    ))
-}
+// /// Inst like ```  lea rax, [label] ```
+// pub fn parse_inst_with_label(src: Text) -> ParseResult<Text, (Label, Inst)> {
+//     let (mnemonic_tok, rest) = lexeme(ws, mnemonic_name).terminated(ws).parse(src)?;
+//     let (dst, rest) = parse_operand
+//         .terminated(lexeme(ws, char_pc(',')))
+//         .optional(rest);
+//     let (src, rest) = parse_operand.optional(rest);
+//     let (src_ext, rest) = parse_operand
+//         .preceded(lexeme(ws, char_pc(',')))
+//         .optional(rest);
+//     Ok((
+//         (
+//             Label::Addr{ name: "f".to_string(), disp: todo!()},
+//             Inst {
+//                 mnemonic: mnemonic_tok.inner.to_string(),
+//                 dst,
+//                 src,
+//                 src_ext,
+//             },
+//         ),
+//         rest,
+//     ))
+// }
 
 fn parse_operand_label_opt(src: Text) -> ParseResult<Text, (Option<Label>, Operand)> {
     choice!(parse_operand_without_label, parse_operand_with_label).parse(src)
@@ -279,9 +290,10 @@ fn parse_operand_with_label(src: Text) -> ParseResult<Text, (Option<Label>, Oper
 
 fn parse_label_address(src: Text) -> ParseResult<Text, (Label, Operand)> {
     let (name, rest) = lexeme(ws, label_name).parse(src)?;
-    let label = Label::Addr(name);
-    // TODO: 32bit
-    let operand = Operand::Imm(Imm::Imm64(0));
+    let (disp, rest) = parse_disp32.optional(rest);
+    let disp = disp.unwrap_or(0);
+    let label = Label::Addr{name, disp};
+    let operand = Operand::Label;
     Ok(((label, operand), rest))
 }
 
@@ -289,17 +301,20 @@ fn parse_label_mem(src: Text) -> ParseResult<Text, (Label, Operand)> {
     let (width_opt, rest) = lexeme(ws, parse_size_define).optional(src);
     let (_, rest) = lexeme(ws, char_pc('[')).parse(rest)?;
     let (label, rest) = lexeme(ws, label_name).parse(rest)?;
-    let (disp_opt, rest) = parse_disp32.optional(rest);
+    let (disp, rest) = parse_disp32.optional(rest);
+    let disp = disp.unwrap_or(0);
     let (_, rest) = lexeme(ws, char_pc(']')).parse(rest)?;
     Ok((
-        (Label::Mem { name: label, disp_opt }, Operand::Mem { width: width_opt.unwrap_or(0), mem: Mem::RIPDisp { disp32:0 } }),
+        (Label::Mem { name: label, disp }, Operand::Mem { width: width_opt.unwrap_or(0), mem: Mem::RIPDisp { disp32:0 } }),
         rest
     ))
 }
 
 fn parse_disp32(src: Text) -> ParseResult<Text, i32> {
-    let (num, rest) = lexeme(ws, parse_signed).parse(src)?;
+    let (s, rest) = choice!(lexeme(ws, char_pc('+')), lexeme(ws, char_pc('-'))).parse(src)?;
+    let (num, rest) = lexeme(ws, parse_dex).parse(rest)?;
     let val = str::parse::<i32>(num.inner)
         .map_err(|_| ParseError::new(format!("unkown label displacement: {num}")))?;
+    let val = if s.inner == '-' { -val } else { val };
     Ok((val, rest))
 }
