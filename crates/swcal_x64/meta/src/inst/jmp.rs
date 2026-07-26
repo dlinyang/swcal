@@ -6,10 +6,10 @@ use RWAttr::*;
 pub fn jmp() -> Vec<InstFormat> {
     vec![
         // not support jmp rel8 rel16 that i can scan once and generate code
-        // // JMP rel8 - EB cb (short jump, 8-bit relative offset)
-        // instf!("jmp", Legacy, opcode!(0xEB), no_modrm(), rel(8)),
-        // // JMP rel16 - E9 cw/cd (near jump, 16-bit relative offset)
-        // instf!("jmp", Legacy, opcode!(0xE9), no_modrm(), rel(16)),
+        // JMP rel8 - EB cb (short jump, 8-bit relative offset)
+        instf!("jmp", Legacy, opcode!(0xEB), no_modrm(), rel(8)),
+        // JMP rel16 - E9 cw/cd (near jump, 16-bit relative offset)
+        instf!("jmp", Legacy, opcode!(0xE9), no_modrm(), rel(16)),
         // JMP rel32 - E9 cw/cd (near jump, 32-bit relative offset)
         instf!("jmp", Legacy, opcode!(0xE9), no_modrm(), rel(32)),
         // JMP r/m16 - FF /4 (near jump, absolute indirect via register/memory)

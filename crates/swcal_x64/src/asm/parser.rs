@@ -10,9 +10,9 @@ use tinyparsec::parsec::*;
 use tinyparsec::text::*;
 use tinyparsec::*;
 
-pub fn parse(src: &str) -> ParseResult<(), PreEL> {
+pub fn parse(src: &str) -> ParseResult<(), Program> {
     let mut text = Text::new(src, Default::default());
-    let mut el = PreEL::new();
+    let mut el = Program::new();
     let mut section = Section::new();
     while text.inner.len() > 0 {
         let (_, rest) = many0(empty_line.or(ws_or_comment)).parse(text)?;
@@ -63,11 +63,10 @@ pub fn parse(src: &str) -> ParseResult<(), PreEL> {
             }
             AsmStmt::Inst{inst, label} => {
                 if let Some(label) = label {
-                    // el.relocation.push(PreRelocation{
-                    //     label_name: label.,
-                    // });
-                    //relocation
-                    // section.labels.push(label);
+                    // relocation info
+                    el.relocations.push(PreRelocation{
+                        label, data_idx: (el.sections.len(), section.data.len())
+                    });
                 }
                 section.data.push(Data::Inst(inst));
             }

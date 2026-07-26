@@ -34,3 +34,11 @@ pub enum Label {
     Addr{ name: String, disp: i32 },
     Mem { name: String, disp: i32 },
 }
+
+impl Label {
+    pub fn name(&self) -> &String {
+        match self {
+            Label::Addr { name,.. } | Label::Mem { name, .. } => name,
+        }
+    }
+}

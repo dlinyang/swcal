@@ -1,3 +1,5 @@
+use std::usize;
+
 use crate::inst::encode::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,8 +20,33 @@ impl Imm {
         }
     }
 
-    pub fn is_w64(&self) -> bool {
-        self.width() == 64
+    pub fn fit_val(val: usize) -> Self {
+        if val <= u8::MAX as usize {
+            Self::Imm8(val as u8)
+        }
+        else if val <= u16::MAX as usize {
+            Self::Imm16(val as u16)
+        }
+        else if val <= u32::MAX as usize {
+            Self::Imm32(val as u32)
+        }
+        else {
+            Self::Imm64(val as u64)
+        }
+    }
+
+    // pub fn is_w64(&self) -> bool {
+    //     self.width() == 64
+    // }
+
+    pub fn try_from_width(width: u16) -> Self {
+        match width {
+            8 => Self::Imm8(0),
+            16 => Self::Imm16(0),
+            32 => Self::Imm32(0),
+            64 => Self::Imm64(0),
+            _ => panic!("not support width"),
+        }
     }
 
     pub fn encode(&self, buf: &mut impl CodeSink){
@@ -63,16 +90,6 @@ macro_rules! imm_n {
                 buf.$f(self.val)
             }
         }
-
-        impl TryFrom<Imm> for $name {
-            type Error = String;
-            fn try_from(value: Imm) -> Result<Self, Self::Error> {
-                match value {
-                    Imm::$name(val) => Ok(Self::new(val)),
-                    _ => Err("Unmatched imm type".into()),
-                }
-            }
-        }
     };
 }
 
@@ -80,3 +97,48 @@ imm_n!(Imm8, u8, putb);
 imm_n!(Imm16, u16, putw);
 imm_n!(Imm32, u32, putd);
 imm_n!(Imm64, u64, putq);
+
+impl TryFrom<Imm> for Imm8 {
+    type Error = String;
+    fn try_from(value: Imm) -> Result<Self, Self::Error> {
+        match value {
+            Imm::Imm8(val) => Ok(Self::new(val)),
+            _ => Err("Unmatched imm type".into()),
+        }
+    }
+}
+
+impl TryFrom<Imm> for Imm16 {
+    type Error = String;
+    fn try_from(value: Imm) -> Result<Self, Self::Error> {
+        match value {
+            Imm::Imm8(val) => Ok(Self::new(val as u16)),
+            Imm::Imm16(val) => Ok(Self::new(val)),
+            _ => Err("Unmatched imm type".into()),
+        }
+    }
+}
+
+impl TryFrom<Imm> for Imm32 {
+    type Error = String;
+    fn try_from(value: Imm) -> Result<Self, Self::Error> {
+        match value {
+            Imm::Imm8(val) => Ok(Self::new(val as u32)),
+            Imm::Imm16(val) => Ok(Self::new(val as u32)),
+            Imm::Imm32(val) => Ok(Self::new(val)),
+            _ => Err("Unmatched imm type".into()),
+        }
+    }
+}
+
+impl TryFrom<Imm> for Imm64 {
+    type Error = String;
+    fn try_from(value: Imm) -> Result<Self, Self::Error> {
+        match value {
+            Imm::Imm8(val) => Ok(Self::new(val as u64)),
+            Imm::Imm16(val) => Ok(Self::new(val as u64)),
+            Imm::Imm32(val) => Ok(Self::new(val as u64)),
+            Imm::Imm64(val) => Ok(Self::new(val)),
+        }
+    }
+}

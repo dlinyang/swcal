@@ -5,8 +5,9 @@ fn main() {
     let src = include_str!("../tests/test_asm.asm");
 
     match parse(src) {
-        Ok((el, _)) => {
-            for section in el.sections {
+        Ok((mut program, _)) => {
+            program.scan_reloc_and_modify_inst();
+            for section in program.sections {
                 let mut base = 0x1000;
                 for data in section.data {
                     match data {

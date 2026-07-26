@@ -1,6 +1,8 @@
+use crate::inst::base::Label;
+
 #[derive(Debug)]
 pub struct PreRelocation {
-    pub label_name: String,
+    pub label: Label,
     pub data_idx: (usize, usize),
 }
 

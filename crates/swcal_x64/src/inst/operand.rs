@@ -117,7 +117,7 @@ macro_rules! impl_try_into_imm {
             fn try_from(value: Operand) -> Result<Self, Self::Error> {
                 match value {
                     Operand::Imm(imm) => Self::try_from(imm),
-                    Operand::Label => Ok(Self::new(0)),
+                    // Operand::Label => Ok(Self::new(0)),
                     _ => Err("Not IMM".into())
                 }
             }
@@ -138,7 +138,6 @@ macro_rules! impl_try_into_rel {
             fn try_from(value: Operand) -> Result<Self, Self::Error> {
                 match value {
                     Operand::Imm(imm) => Self::try_from(imm),
-                    Operand::Label => Ok(Self::new(0)),
                     _ => Err("Not Rel".into())
                 }
             }

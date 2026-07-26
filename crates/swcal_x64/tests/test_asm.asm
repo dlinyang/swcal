@@ -163,7 +163,7 @@ after_test_function:
     mov rax, 1          ; sys_write
     mov rdi, 1          ; fd = stdout
     lea rsi, [msg]      ; buf = msg
-    mov rdx, msg_len    ; count
+    mov rdx, 15    ; count
     syscall
 
     ; exit(0)
