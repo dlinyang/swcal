@@ -1,8 +1,3 @@
-use crate::*;
-use Prefix::*;
-use RegKind::*;
-use RWAttr::*;
-
 pub fn jmp() -> Vec<InstFormat> {
     vec![
         // not support jmp rel8 rel16 that i can scan once and generate code
@@ -60,8 +55,8 @@ pub fn jmp() -> Vec<InstFormat> {
         instf!("jge", Legacy, opcode!(0x0F, 0x8D), no_modrm(), rel(32)),
 
 
-    // CMP instruction forms comparing register/memory with register, immediate, and accumulator
-    // All standard CMP opcodes and operand types for 8/16/32/64-bit modes
+        // CMP instruction forms comparing register/memory with register, immediate, and accumulator
+        // All standard CMP opcodes and operand types for 8/16/32/64-bit modes
         // CMP r/m8, imm8 - 80 /7 ib
         instf!("cmp", Legacy, opcode!(0x80), digit(7), rm(Gpr, u(8), W), imm_u(8)),
         // CMP r/m16, imm16 - 81 /7 iw
@@ -110,19 +105,19 @@ pub fn jmp() -> Vec<InstFormat> {
         instf!("loop", Legacy, opcode!(0xE2), no_modrm(), rel(8)),
         // LOOPE rel8 - E1 cb (decrement count, jump if RCX/ECX/CX != 0 and ZF=1)
         instf!("loope", Legacy, opcode!(0xE1), no_modrm(), rel(8)),
-        // // LOOPNE rel8 - E0 cb (decrement count, jump if RCX/ECX/CX != 0 and ZF=0)
-        // instf!("loopne", Legacy, opcode!(0xE0), no_modrm(), imm_i(8)),
-        // // // LOOPW rel8 - 67 E2 cb (decrement CX, 16-bit address size override)
-        // // instf!("loopw", Legacy, prefix!(0x67), opcode!(0xE2), no_modrm(), imm_i(8)),
-        // // // LOOPD rel8 - 67 E2 cb (decrement ECX, 32-bit address size override)
-        // // instf!("loopd", Legacy, prefix!(0x67), opcode!(0xE2), no_modrm(), imm_i(8)),
-        // // // LOOPQ rel8 - E2 cb (decrement RCX, 64-bit default in x86-64)
-        // // instf!("loopq", Legacy, opcode!(0xE2), no_modrm(), imm_i(8)),
-        // // JRCXZ rel8 - E3 cb (jump if RCX=0)
-        // instf!("jrcxz", Legacy, opcode!(0xE3), no_modrm(), imm_i(8)),
-        // // JECXZ rel8 - 67 E3 cb (jump if ECX=0, address size override)
-        // instf!("jecxz", Legacy, opcode!(0xE3), no_modrm(), imm_i(8)),
-        // // JCXZ rel8 - 67 E3 cb (jump if CX=0, address size override)
-        // instf!("jcxz", Legacy, opcode!(0xE3), no_modrm(), imm_i(8)),
+        // LOOPNE rel8 - E0 cb (decrement count, jump if RCX/ECX/CX != 0 and ZF=0)
+        instf!("loopne", Legacy, opcode!(0xE0), no_modrm(), rel(8)),
+        // LOOPW rel8 - 67 E2 cb (decrement CX, 16-bit address size override)
+        instf!("loopw", Legacy, opcode!(0x67, 0xE2), no_modrm(), rel(8)),
+        // LOOPD rel8 - 67 E2 cb (decrement ECX, 32-bit address size override)
+        instf!("loopd", Legacy, opcode!(0x67, 0xE2), no_modrm(), rel(8)),
+        // LOOPQ rel8 - E2 cb (decrement RCX, 64-bit default in x86-64)
+        instf!("loopq", Legacy, opcode!(0xE2), no_modrm(), rel(8)),
+        // JRCXZ rel8 - E3 cb (jump if RCX=0)
+        instf!("jrcxz", Legacy, opcode!(0xE3), no_modrm(), rel(8)),
+        // JECXZ rel8 - 67 E3 cb (jump if ECX=0, address size override)
+        instf!("jecxz", Legacy, opcode!(0xE3), no_modrm(), rel(8)),
+        // JCXZ rel8 - 67 E3 cb (jump if CX=0, address size override)
+        instf!("jcxz", Legacy, opcode!(0xE3), no_modrm(), rel(8)),
     ]
 }

@@ -1,8 +1,3 @@
-use crate::*;
-use Prefix::*;
-use RegKind::*;
-use RWAttr::*;
-
 pub fn stack() -> Vec<InstFormat> {
     vec![
             // PUSH r/m16 - FF /6 (push 16-bit register/memory)

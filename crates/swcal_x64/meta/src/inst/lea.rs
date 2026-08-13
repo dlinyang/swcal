@@ -1,8 +1,3 @@
-use crate::*;
-use Prefix::*;
-use RegKind::*;
-use RWAttr::*;
-
 // lea
 #[must_use]
 pub fn lea() -> Vec<InstFormat> {

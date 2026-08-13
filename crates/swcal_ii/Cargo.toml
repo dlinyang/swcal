@@ -1,0 +1,7 @@
+[package]
+name = "swcal_ii"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+swcal_ir = { path = "../swcal_ir"}

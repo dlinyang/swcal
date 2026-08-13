@@ -143,11 +143,19 @@ pub fn build_inst(src: &mut RustBuilder, instf: &InstFormat) {
         });
 
         src.blank();
-        src.function("pub fn from_inst(inst: &Inst) -> Result<Self, String>", |src| {
+        src.function("pub fn from_asm_inst(inst: &AsmInst) -> Result<Self, String>", |src| {
             let inst_field = ["dst", "src", "src_ext"];
             let mut i = 0;
             for operand in &operands {
                 let var_name = operand.var_name();
+
+                if let OperandFormat { ty: OperandKind::Reg( RegKind::Fixed { reg: _, implicitly },_), val_ty: _ } = *operand {
+                    if implicitly == true {
+                        src.line(format!("let {} = Default::default();", var_name));
+                        continue;
+                    }
+                }
+
                 src.line(format!("let {} = inst.{}.ok_or(\"none operand\")?;", var_name, inst_field[i]));
                 src.line(format!("let {} = {}.try_into()?;", var_name, var_name));
                 i += 1;
@@ -182,7 +190,7 @@ pub fn build_inst(src: &mut RustBuilder, instf: &InstFormat) {
                             RegKind::Gpr => {},
                             RegKind::XMM => {},
                             RegKind::YMM => {},
-                            RegKind::Fgr(_) => {
+                            RegKind::Fixed{..} => {
                                 is_fixed_reg = true;
                             },
                         }

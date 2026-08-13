@@ -3,16 +3,58 @@
 pub enum IRType {
     Primitive(Primitive),
     Pointer(Box<IRType>),
-    Array(Box<IRType>, usize),
-    Function(Vec<IRType>, Box<IRType>),
-    NamedStruct(String),
+    Array {
+        ty: Box<IRType>,
+        len: usize
+    },
+    Vector{
+        ty: Primitive,
+        len: usize
+    },
+    Struct{
+        name: Option<String>,
+        record: Record,
+    },
+    Function{
+        params: Vec<IRType>,
+        ret: Box<IRType>
+    },
+    Void,
     Never,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Record {
+    fields: Vec<Field>,
+}
+
+impl std::fmt::Display for Record {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for (i, field) in self.fields.iter().enumerate() {
+            if i > 0 {
+                write!(f, ",")?;
+            }
+            write!(f, "{}", field)?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Field {
+    name:  String,
+    ty: Box<IRType>,
+}
+
+impl std::fmt::Display for Field {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f,"{}:{}", self.name, self.ty)
+    }
 }
 
 /// Primitive/built-in scalar types.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Primitive {
-    Void,
     Bool,
     U8,
     U16,
@@ -31,7 +73,6 @@ pub enum Primitive {
 impl std::fmt::Display for Primitive {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Primitive::Void => write!(f, "void"),
             Primitive::Bool => write!(f, "bool"),
             Primitive::U8 => write!(f, "u8"),
             Primitive::U16 => write!(f, "u16"),
@@ -53,9 +94,20 @@ impl std::fmt::Display for IRType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             IRType::Primitive(p) => write!(f, "{}", p),
-            IRType::Pointer(inner) => write!(f, "*{}", inner),
-            IRType::Array(elem, len) => write!(f, "[{}; {}]", elem, len),
-            IRType::Function(params, ret) => {
+            IRType::Pointer(inner) => write!(f, "ptr<{}>", inner),
+            IRType::Array{ ty, len } => write!(f, "[{} * {}]", ty, len),
+            IRType::Vector { ty, len } => write!(f, "vec<{} * {}>", ty, len),
+            IRType::Struct{ name, record } => {
+                if let Some(name) = name {
+                    write!(f, "{} : struct {{ {} }}", name, record)
+                }
+                else {
+                    write!(f, "struct {{ {} }}", record)
+                }
+            },
+            IRType::Never => write!(f, "!"),
+            IRType::Void => write!(f, "void"),
+            IRType::Function{ params, ret} => {
                 write!(f, "(")?;
                 for (i, param) in params.iter().enumerate() {
                     if i > 0 {
@@ -65,8 +117,6 @@ impl std::fmt::Display for IRType {
                 }
                 write!(f, ") -> {}", ret)
             }
-            IRType::NamedStruct(name) => write!(f, "{}", name),
-            IRType::Never => write!(f, "!"),
         }
     }
 }

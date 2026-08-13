@@ -6,7 +6,7 @@ pub enum ValType {
     U(u16),
     /// integer n-bit
     I(u16),
-    /// unsigned integer n-bit
+    /// float n-bit
     F(u16),
 }
 
@@ -89,7 +89,7 @@ pub enum RegKind {
     Gpr,
     XMM,
     YMM,
-    Fgr(u8),
+    Fixed{ reg: FixedReg, implicitly: bool},
 }
 
 impl RegKind {
@@ -104,7 +104,7 @@ impl SrcGen for RegKind {
             RegKind::Gpr => "gpr".into(),
             RegKind::XMM => "xmm".into(),
             RegKind::YMM => "ymm".into(),
-            RegKind::Fgr(id) => format!("fixgpr{}", id),
+            RegKind::Fixed{reg,..} => format!("fixed_{}", reg.to_string().to_ascii_lowercase()),
         }
     }
 
@@ -113,7 +113,7 @@ impl SrcGen for RegKind {
             RegKind::Gpr => "Gpr".into(),
             RegKind::XMM => "XMM".into(),
             RegKind::YMM => "YMM".into(),
-            RegKind::Fgr(reg_id) => format!("FixedGpr<{}>", reg_id),
+            RegKind::Fixed{reg,..} => format!("Fixed<{}>", reg),
         }
     }
 
@@ -238,6 +238,13 @@ pub fn imm_f(bit: u16) -> OperandFormat {
 pub fn rel(bit: u16) -> OperandFormat {
     OperandFormat { ty: OperandKind::Rel, val_ty: i(bit)}
 }
+pub fn fixed(reg: FixedReg, val_ty: ValType, rw: RWAttr) -> OperandFormat {
+    OperandFormat { ty:  OperandKind::Reg( RegKind::Fixed { reg, implicitly: false }, rw), val_ty}
+}
+
+pub fn implicit(reg: FixedReg, val_ty: ValType, rw: RWAttr) -> OperandFormat {
+    OperandFormat { ty: OperandKind::Reg(RegKind::Fixed { reg, implicitly: true }, rw), val_ty}
+}
 
 #[derive(Clone, Copy)]
 pub enum OperandEncode {
@@ -338,3 +345,48 @@ pub fn genarate_operand_field(builder: &mut RustBuilder, encode: &OperandEncode)
         },
     }
 }
+
+macro_rules! fixed_enum {
+    (
+        $(#[$meta:meta])*
+        $vis:vis enum $name:ident {
+            $($variant:ident $(= $value:expr)?),* $(,)?
+        }
+    ) => {
+        $(#[$meta])*
+        $vis enum $name {
+            $($variant $(= $value)?),*
+        }
+
+        impl $name {
+            pub fn all() -> Vec<Self> {
+                vec![$(Self::$variant),*]
+            }
+        }
+        impl std::fmt::Display for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                match self {
+                    $($name::$variant => write!(f, stringify!($variant)),)*
+                }
+            }
+        }
+    };
+}
+
+fixed_enum!(
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    pub enum FixedReg {
+        // Fixed registers.
+        AL,
+        AX,
+        EAX,
+        RAX,
+        RBX,
+        DX,
+        EDX,
+        RDX,
+        CL,
+        RCX,
+        // XMM0,
+    }
+);

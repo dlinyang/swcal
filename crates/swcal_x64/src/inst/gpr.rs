@@ -19,9 +19,15 @@ impl RegEnc for Gpr {
     }
 }
 
-pub struct FixedGpr<const I: u8> {}
+pub struct Fixed<const I: u8> {}
 
 
-impl<const I: u8> FixedGpr<I> {
+impl<const I: u8> Fixed<I> {
     pub fn new() -> Self { Self {  }}
+}
+
+impl<const I: u8> Default for Fixed<I> {
+    fn default() -> Self {
+        Self {  }
+    }
 }

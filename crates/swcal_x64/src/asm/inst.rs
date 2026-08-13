@@ -7,7 +7,7 @@ use tinyparsec::parsec::*;
 use tinyparsec::text::*;
 
 /// Note: this is not fast way to impl parse inst
-pub fn parse_inst_label_opt(src: Text) -> ParseResult<Text, (Option<Label>, Inst)> {
+pub fn parse_inst_label_opt(src: Text) -> ParseResult<Text, (Option<Label>, AsmInst)> {
     let (mnemonic_tok, rest) = lexeme(ws, mnemonic_name).terminated(ws).parse(src)?;
 
     let (label_dst_opt, rest) = parse_operand_label_opt
@@ -76,7 +76,7 @@ pub fn parse_inst_label_opt(src: Text) -> ParseResult<Text, (Option<Label>, Inst
     Ok((
         (
             label,
-            Inst {
+            AsmInst {
                 mnemonic: mnemonic_tok.inner.to_string(),
                 dst,
                 src,

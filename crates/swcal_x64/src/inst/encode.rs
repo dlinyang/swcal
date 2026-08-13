@@ -123,3 +123,14 @@ impl std::fmt::Display for InstBin {
         f.pad(ctx.as_str())
     }
 }
+
+impl std::ops::Index<usize> for InstBin {
+    type Output = u8;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        if index >= self.len {
+            panic!("InstBin index out of bounds: index {} but len {}", index, self.len);
+        }
+        &self.data[index]
+    }
+}

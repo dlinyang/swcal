@@ -1,8 +1,3 @@
-use crate::*;
-use Prefix::*;
-use RegKind::*;
-use RWAttr::*;
-
 #[must_use]
 pub fn mov() -> Vec<InstFormat> {
     vec![

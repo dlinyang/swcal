@@ -1,5 +1,3 @@
-use std::usize;
-
 use crate::inst::encode::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

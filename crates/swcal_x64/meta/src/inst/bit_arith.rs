@@ -1,9 +1,3 @@
-use crate::format::*;
-use crate::*;
-use Prefix::*;
-use RegKind::*;
-use RWAttr::*;
-
 pub fn bit_arith() -> Vec<InstFormat> {
     vec![
         // XOR r/m8, imm8 - 80 /6 ib
@@ -69,13 +63,13 @@ pub fn bit_arith() -> Vec<InstFormat> {
         instf!("shl", Legacy, opcode!(0xD1), digit(4), rm(Gpr, u(64), W)),
 
         // SHL r/m8, CL - D2 /4
-        instf!("shl", Legacy, opcode!(0xD2), digit(4), rm(Gpr, u(8), W), reg(Fgr(1), u(8), R)),
+        instf!("shl", Legacy, opcode!(0xD2), digit(4), rm(Gpr, u(8), W), fixed(CL, u(8), R)),
         // SHL r/m16, CL - D3 /4
-        instf!("shl", Legacy, opcode!(0xD3), digit(4), rm(Gpr, u(16), W), reg(Fgr(1), u(16), R)),
+        instf!("shl", Legacy, opcode!(0xD3), digit(4), rm(Gpr, u(16), W), fixed(CL, u(16), R)),
         // SHL r/m32, CL - D3 /4
-        instf!("shl", Legacy, opcode!(0xD3), digit(4), rm(Gpr, u(32), W), reg(Fgr(1), u(32), R)),
+        instf!("shl", Legacy, opcode!(0xD3), digit(4), rm(Gpr, u(32), W), fixed(CL, u(32), R)),
         // SHL r/m64, CL - D3 /4 (REX.W)
-        instf!("shl", Legacy, opcode!(0xD3), digit(4), rm(Gpr, u(64), W), reg(Fgr(1), u(64), R)),
+        instf!("shl", Legacy, opcode!(0xD3), digit(4), rm(Gpr, u(64), W), fixed(CL, u(64), R)),
 
 
         // SHR r/m8, imm8 - C0 /5 ib
@@ -97,13 +91,13 @@ pub fn bit_arith() -> Vec<InstFormat> {
         instf!("shr", Legacy, opcode!(0xD1), digit(5), rm(Gpr, u(64), W)),
 
         // SHR r/m8, CL - D2 /5
-        instf!("shr", Legacy, opcode!(0xD2), digit(5), rm(Gpr, u(8), W), reg(Fgr(1), u(8), R)),
+        instf!("shr", Legacy, opcode!(0xD2), digit(5), rm(Gpr, u(8), W), fixed(CL, u(8), R)),
         // SHR r/m16, CL - D3 /5
-        instf!("shr", Legacy, opcode!(0xD3), digit(5), rm(Gpr, u(16), W), reg(Fgr(1), u(16), R)),
+        instf!("shr", Legacy, opcode!(0xD3), digit(5), rm(Gpr, u(16), W), fixed(CL, u(16), R)),
         // SHR r/m32, CL - D3 /5
-        instf!("shr", Legacy, opcode!(0xD3), digit(5), rm(Gpr, u(32), W), reg(Fgr(1), u(32), R)),
+        instf!("shr", Legacy, opcode!(0xD3), digit(5), rm(Gpr, u(32), W), fixed(CL, u(32), R)),
         // SHR r/m64, CL - D3 /5 (REX.W)
-        instf!("shr", Legacy, opcode!(0xD3), digit(5), rm(Gpr, u(64), W), reg(Fgr(1), u(64), R)),
+        instf!("shr", Legacy, opcode!(0xD3), digit(5), rm(Gpr, u(64), W), fixed(CL, u(64), R)),
 
 
         // SAR r/m8, imm8 - C0 /7 ib
@@ -125,12 +119,12 @@ pub fn bit_arith() -> Vec<InstFormat> {
         instf!("sar", Legacy, opcode!(0xD1), digit(7), rm(Gpr, u(64), W)),
 
         // SAR r/m8, CL - D2 /7
-        instf!("sar", Legacy, opcode!(0xD2), digit(7), rm(Gpr, u(8), W), reg(Fgr(1), u(8), R)),
+        instf!("sar", Legacy, opcode!(0xD2), digit(7), rm(Gpr, u(8), W), fixed(CL, u(8), R)),
         // SAR r/m16, CL - D3 /7
-        instf!("sar", Legacy, opcode!(0xD3), digit(7), rm(Gpr, u(16), W), reg(Fgr(1), u(16), R)),
+        instf!("sar", Legacy, opcode!(0xD3), digit(7), rm(Gpr, u(16), W), fixed(CL, u(16), R)),
         // SAR r/m32, CL - D3 /7
-        instf!("sar", Legacy, opcode!(0xD3), digit(7), rm(Gpr, u(32), W), reg(Fgr(1), u(32), R)),
+        instf!("sar", Legacy, opcode!(0xD3), digit(7), rm(Gpr, u(32), W), fixed(CL, u(32), R)),
         // SAR r/m64, CL - D3 /7 (REX.W)
-        instf!("sar", Legacy, opcode!(0xD3), digit(7), rm(Gpr, u(64), W), reg(Fgr(1), u(64), R)),
+        instf!("sar", Legacy, opcode!(0xD3), digit(7), rm(Gpr, u(64), W), fixed(CL, u(64), R)),
     ]
 }

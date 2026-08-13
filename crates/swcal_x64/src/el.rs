@@ -53,7 +53,7 @@ impl Program {
                         _ => panic!("not should like this"),
                     }
                 },
-                base::Label::Mem { name,..} => {},
+                base::Label::Mem {..} => {},
             }
         }
     }
@@ -169,7 +169,7 @@ impl std::fmt::Display for Section {
 
 #[derive(Debug)]
 pub enum Data {
-    Inst(Inst),
+    Inst(AsmInst),
     RawData{
         width: u16,
         data: Vec<u8>,
@@ -179,7 +179,7 @@ pub enum Data {
 }
 
 impl Data  {
-    pub fn get_mut_inst(&mut self) -> Option<&mut Inst> {
+    pub fn get_mut_inst(&mut self) -> Option<&mut AsmInst> {
         match self {
             Data::Inst(inst) => Some(inst),
             _ => None

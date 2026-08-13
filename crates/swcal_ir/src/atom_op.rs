@@ -1,6 +1,6 @@
 /// Atomic operation kinds in the IR.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum AtomOp {
+pub enum BinaryAtomOp {
     // ── Arithmetic ──
     Add,
     Sub,
@@ -22,7 +22,10 @@ pub enum AtomOp {
     Le,
     Gt,
     Ge,
+}
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum UnaryAtomOp {
     // ── Unary ──
     /// Arithmetic negation (`-x`).
     Neg,
@@ -53,7 +56,7 @@ pub enum AtomOp {
 }
 use std::fmt;
 
-impl fmt::Display for AtomOp {
+impl fmt::Display for BinaryAtomOp {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Add => write!(f, "add"),
@@ -72,6 +75,13 @@ impl fmt::Display for AtomOp {
             Self::Le => write!(f, "le"),
             Self::Gt => write!(f, "gt"),
             Self::Ge => write!(f, "ge"),
+        }
+    }
+}
+
+impl fmt::Display for UnaryAtomOp {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
             Self::Neg => write!(f, "neg"),
             Self::Not => write!(f, "not"),
             Self::ZExt => write!(f, "zext"),

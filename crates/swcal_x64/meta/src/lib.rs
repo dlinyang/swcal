@@ -31,6 +31,10 @@ pub fn generate_inst_emit(p: &Path) {
 
     let mut src = crate::generate::RustBuilder::new();
 
+    for fixed_reg in FixedReg::all() {
+        src.line(format!("pub const {}: u8 = Reg::{}.id();", fixed_reg, fixed_reg));
+    }
+
     for (_mnemonic, inst_codgen) in inst::inst_codegen_table() {
         for instf in inst_codgen {
             // build inst
@@ -50,7 +54,7 @@ pub fn generate_inst_emit(p: &Path) {
 // build asmebler
 fn generate_asmebler(src: &mut crate::generate::RustBuilder) {
     // match mnemonic
-    src.function(stringify!(pub fn x86_64_asembler(inst: &Inst) -> Result<InstBin,String>), |src|{
+    src.function(stringify!(pub fn x86_64_asembler(inst: &AsmInst) -> Result<InstBin,String>), |src|{
         src.blank()
             .stmt_match("inst.mnemonic.as_str()", |src|{
                 for (mnemonic, _inst_codgen) in inst::inst_codegen_table() {
@@ -63,11 +67,11 @@ fn generate_asmebler(src: &mut crate::generate::RustBuilder) {
     // instruction try
     for (mnemonic, inst_table) in inst::inst_codegen_table() {
         src.blank()
-            .function(format!("pub fn asm_{}(inst: &Inst) -> Result<InstBin,String>", mnemonic), |src| {
+            .function(format!("pub fn asm_{}(inst: &AsmInst) -> Result<InstBin,String>", mnemonic), |src| {
                 src.line("let mut ret: Option<InstBin> = None;");
                 src.line("let mut temp = InstBin::new();");
                 for instf in inst_table {
-                    src.if_codition(format!("let Ok(inst) = {}::from_inst(inst)", instf.type_name()), |src| {
+                    src.if_codition(format!("let Ok(inst) = {}::from_asm_inst(inst)", instf.type_name()), |src| {
                         src.line("inst.encode(&mut temp);");
                         src.stmt_match("&ret", |src| {
                             src.line("Some(bin) if bin.len() > temp.len() => ret = Some(temp.clone()),");

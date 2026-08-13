@@ -14,14 +14,14 @@ pub mod rel;
 use operand::*;
 
 #[derive(Debug)]
-pub struct Inst {
+pub struct AsmInst {
     pub mnemonic: String,
     pub dst: Option<Operand>,
     pub src: Option<Operand>,
     pub src_ext: Option<Operand>,
 }
 
-impl Inst {
+impl AsmInst {
     pub fn name(&self) -> String {
         format!("{}", self.mnemonic)
     }
@@ -42,7 +42,7 @@ pub fn operand_is_imm(operand_opt: &Option<Operand>) -> bool {
     operand_opt.is_some_and(|x| x.is_imm())
 }
 
-impl std::fmt::Display for Inst {
+impl std::fmt::Display for AsmInst {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.mnemonic)?;
         if let Some(dst) = self.dst {

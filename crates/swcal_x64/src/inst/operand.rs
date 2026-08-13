@@ -1,7 +1,7 @@
 use crate::inst::base::RegEnc;
 use crate::inst::base::width_as_str;
 // use crate::inst::encode::Encode;
-use crate::inst::gpr::FixedGpr;
+use crate::inst::gpr::Fixed;
 use crate::inst::gpr::Gpr;
 
 use super::reg::*;
@@ -149,14 +149,14 @@ impl_try_into_rel!(Rel8);
 impl_try_into_rel!(Rel16);
 impl_try_into_rel!(Rel32);
 
-impl<const N: u8> TryFrom<Operand> for FixedGpr<N> {
+impl<const N: u8> TryFrom<Operand> for Fixed<N> {
     type Error = String;
 
     fn try_from(value: Operand) -> Result<Self, Self::Error> {
         match value {
             Operand::Reg(reg) => {
                 if reg.id() == N {
-                    Ok(FixedGpr::new())
+                    Ok(Fixed::new())
                 } else {
                     Err(format!("Not FixedReg {}", N))
                 }

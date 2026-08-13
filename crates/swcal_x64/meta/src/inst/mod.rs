@@ -1,18 +1,23 @@
 use std::collections::HashMap;
 
 use crate::format::*;
+use crate::*;
+use Prefix::*;
+use RegKind::*;
+use RWAttr::*;
+use FixedReg::*;
 
-mod mov;
-mod lea;
-mod xchg;
-mod arith;
-mod bit_arith;
-mod bool_arith;
-mod jmp;
-mod stack;
-mod call;
-mod syscall;
-mod ret;
+include!("mov.rs");
+include!("lea.rs");
+include!("xchg.rs");
+include!("arith.rs");
+include!("bit_arith.rs");
+include!("bool_arith.rs");
+include!("jmp.rs");
+include!("stack.rs");
+include!("call.rs");
+include!("syscall.rs");
+include!("ret.rs");
 
 pub type InstCodeGenTable = HashMap<String, Vec<InstFormat>>;
 
@@ -31,17 +36,17 @@ pub fn load_instformat(gen_table: &mut InstCodeGenTable, instfs: Vec<InstFormat>
 pub fn inst_codegen_table() -> InstCodeGenTable {
     let mut t = HashMap::new();
 
-    load_instformat(&mut t, mov::mov());
-    load_instformat(&mut t, lea::lea());
-    load_instformat(&mut t, xchg::xchg());
-    load_instformat(&mut t, arith::arith());
-    load_instformat(&mut t, bit_arith::bit_arith());
-    load_instformat(&mut t, bool_arith::bool_arith());
-    load_instformat(&mut t, jmp::jmp());
-    load_instformat(&mut t, stack::stack());
-    load_instformat(&mut t, call::call());
-    load_instformat(&mut t, ret::ret());
-    load_instformat(&mut t, syscall::syscall());
+    load_instformat(&mut t, mov());
+    load_instformat(&mut t, lea());
+    load_instformat(&mut t, xchg());
+    load_instformat(&mut t, arith());
+    load_instformat(&mut t, bit_arith());
+    load_instformat(&mut t, bool_arith());
+    load_instformat(&mut t, jmp());
+    load_instformat(&mut t, stack());
+    load_instformat(&mut t, call());
+    load_instformat(&mut t, ret());
+    load_instformat(&mut t, syscall());
 
     t
 }

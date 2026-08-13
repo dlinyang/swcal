@@ -1,8 +1,3 @@
-use crate::*;
-use Prefix::*;
-// use RegKind::*;
-// use RWAttr::*;
-
 pub fn ret() -> Vec<InstFormat> {
     vec![
         // RET instruction - Return from procedure

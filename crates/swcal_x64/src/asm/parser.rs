@@ -86,7 +86,7 @@ pub enum AsmStmt {
     Global(String),
     Data(String, Data),
     Inst{
-        inst: Inst,
+        inst: AsmInst,
         label: Option<Label>
     },
 }

@@ -1,9 +1,3 @@
-use crate::format::*;
-use crate::*;
-use Prefix::*;
-use RegKind::*;
-use RWAttr::*;
-
 pub fn arith() -> Vec<InstFormat> {
     vec![
         // ADD r/m8, imm8 - 80 /0 ib
@@ -23,13 +17,13 @@ pub fn arith() -> Vec<InstFormat> {
         instf!("add", Legacy, opcode!(0x83), digit(0), rm(Gpr, i(64), RW), imm_i(8)),
 
         // ADD AL, imm8 - 04 ib
-        instf!("add", Legacy, opcode!(0x04), no_modrm(), reg(Fgr(0), u(8), RW), imm_u(8)),
+        instf!("add", Legacy, opcode!(0x04), no_modrm(), fixed(AL, u(8), RW), imm_u(8)),
         // ADD AX, imm16 - 05 iw
-        instf!("add", Legacy, opcode!(0x05), no_modrm(), reg(Fgr(0), u(16), RW), imm_u(16)),
+        instf!("add", Legacy, opcode!(0x05), no_modrm(), fixed(AX, u(16), RW), imm_u(16)),
         // ADD EAX, imm32 - 05 id
-        instf!("add", Legacy, opcode!(0x05), no_modrm(), reg(Fgr(0), u(32), RW), imm_u(32)),
+        instf!("add", Legacy, opcode!(0x05), no_modrm(), fixed(EAX, u(32), RW), imm_u(32)),
         // ADD RAX, imm32 - 05 id (sign-extended to 64-bit)
-        instf!("add", Legacy, opcode!(0x05), no_modrm(), reg(Fgr(0), i(64), RW), imm_i(32)),
+        instf!("add", Legacy, opcode!(0x05), no_modrm(), fixed(RAX, i(64), RW), imm_i(32)),
 
         // ADD r/m8, r8 - 00 /r
         instf!("add", Legacy, opcode!(0x00), modrm(), rm(Gpr, u(8), RW), reg(Gpr, u(8), R)),
@@ -85,14 +79,14 @@ pub fn arith() -> Vec<InstFormat> {
         // SUB r64, r/m64 - 2B /r (REX.W)
         instf!("sub", Legacy, opcode!(0x2B), modrm(), reg(Gpr, u(64), RW), rm(Gpr, u(64), R)),
 
-        // // SUB AL, imm8 - 2C ib (accumulator with immediate)
-        // InstFormat::new("sub", Legacy, opcode!(0x2C), EncodeKind::ModRM, 1, OperandKind::ImmAcc),
-        // // SUB AX, imm16 - 2D iw
-        // InstFormat::new("sub", Legacy, opcode!(0x2D), EncodeKind::ModRM, 2, OperandKind::ImmAcc),
-        // // SUB EAX, imm32 - 2D id
-        // InstFormat::new("sub", Legacy, opcode!(0x2D), EncodeKind::ModRM, 4, OperandKind::ImmAcc),
-        // // SUB RAX, imm32 - 2D id (sign-extended to 64-bit, REX.W)
-        // InstFormat::new("sub", Legacy, opcode!(0x2D), EncodeKind::ModRM, 4, OperandKind::ImmAcc),
+        // SUB AL, imm8 - 2C ib (accumulator with immediate)
+        instf!("sub", Legacy, opcode!(0x2C), no_modrm(), fixed(AL, u(8), RW), imm_u(8)),
+        // SUB AX, imm16 - 2D iw
+        instf!("sub", Legacy, opcode!(0x2D), no_modrm(), fixed(AX, u(16), RW), imm_u(16)),
+        // SUB EAX, imm32 - 2D id
+        instf!("sub", Legacy, opcode!(0x2D), no_modrm(), fixed(EAX, u(32), RW), imm_u(32)),
+        // SUB RAX, imm32 - 2D id (sign-extended to 64-bit, REX.W)
+        instf!("sub", Legacy, opcode!(0x2D), no_modrm(), fixed(RAX, i(64), RW), imm_i(32)),
 
 
         // INC instruction forms covering register and memory variants for 8/16/32/64-bit modes
@@ -165,17 +159,16 @@ pub fn arith() -> Vec<InstFormat> {
         // IMUL r64, r/m64, imm32 - 69 /r id (sign-extended to 64-bit, REX.W)
         instf!("imul", Legacy, opcode!(0x69), modrm(), reg(Gpr, i(64), RW), rm(Gpr, i(64), R), imm_i(32)),
 
-    // DIV instruction forms - unsigned divide
-    // Note: DIV always implicitly uses AX/DX:AX/EDX:EAX/RDX:RAX as the dividend and stores
-    // the quotient in AL/AX/EAX/RAX and remainder in AH/DX/EDX/RDX
-
+        // DIV instruction forms - unsigned divide
+        // Note: DIV always implicitly uses AX/DX:AX/EDX:EAX/RDX:RAX as the dividend and stores
+        // the quotient in AL/AX/EAX/RAX and remainder in AH/DX/EDX/RDX
         // DIV r/m8 - F6 /6 (AX = AL / r/m8, AH = remainder)
-        instf!("div", Legacy, opcode!(0xF6), digit(6), rm(Gpr, u(8), R)),
+        instf!("div", Legacy, opcode!(0xF6), digit(6), implicit(AX, u(8), RW), rm(Gpr, u(8), R)),
         // DIV r/m16 - F7 /6 (AX = DX:AX / r/m16, DX = remainder)
-        instf!("div", Legacy, opcode!(0xF7), digit(6), rm(Gpr, u(16), R)),
+        instf!("div", Legacy, opcode!(0xF7), digit(6), implicit(AX, u(16), RW), implicit(DX, u(16), RW), rm(Gpr, u(16), R)),
         // DIV r/m32 - F7 /6 (EAX = EDX:EAX / r/m32, EDX = remainder)
-        instf!("div", Legacy, opcode!(0xF7), digit(6), rm(Gpr, u(32), R)),
+        instf!("div", Legacy, opcode!(0xF7), digit(6), implicit(EAX, u(32), RW), implicit(EDX, u(32), RW), rm(Gpr, u(32), R)),
         // DIV r/m64 - F7 /6 (REX.W) (RAX = RDX:RAX / r/m64, RDX = remainder)
-        instf!("div", Legacy, opcode!(0xF7), digit(6), rm(Gpr, u(64), R)),
+        instf!("div", Legacy, opcode!(0xF7), digit(6), implicit(RAX, u(64), RW), implicit(RDX, u(64), RW), rm(Gpr, u(64), R)),
     ]
 }

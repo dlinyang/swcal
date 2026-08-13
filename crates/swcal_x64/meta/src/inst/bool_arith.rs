@@ -1,20 +1,15 @@
-use crate::*;
-use Prefix::*;
-use RegKind::*;
-use RWAttr::*;
-
 pub fn bool_arith() -> Vec<InstFormat> {
     vec![
     // AND instruction forms covering register, memory, and immediate variants
     // All standard AND opcodes and operand types for 16/32/64-bit modes
         // AND AL, imm8 - 24 ib (accumulator)
-        instf!("and", Legacy, opcode!(0x24), no_modrm(), reg(Fgr(0), u(8), W), imm_u(8)),
+        instf!("and", Legacy, opcode!(0x24), no_modrm(), fixed(AL, u(8), W), imm_u(8)),
         // AND AX, imm16 - 25 iw
-        instf!("and", Legacy, opcode!(0x25), no_modrm(), reg(Fgr(0), u(16), W), imm_u(16)),
+        instf!("and", Legacy, opcode!(0x25), no_modrm(), fixed(AX, u(16), W), imm_u(16)),
         // AND EAX, imm32 - 25 id
-        instf!("and", Legacy, opcode!(0x25), no_modrm(), reg(Fgr(0), u(32), W), imm_u(32)),
+        instf!("and", Legacy, opcode!(0x25), no_modrm(), fixed(EAX, u(32), W), imm_u(32)),
         // AND RAX, imm32 - 25 id (REX.W)
-        instf!("and", Legacy, opcode!(0x25), no_modrm(), reg(Fgr(0), u(64), W), imm_i(32)),
+        instf!("and", Legacy, opcode!(0x25), no_modrm(), fixed(RAX, u(64), W), imm_i(32)),
 
         // AND r/m8, imm8 - 80 /4 ib
         instf!("and", Legacy, opcode!(0x80), digit(4), rm(Gpr, u(8), W), imm_u(8)),
@@ -54,13 +49,13 @@ pub fn bool_arith() -> Vec<InstFormat> {
     // OR instruction forms covering register, memory, and immediate variants
     // All standard OR opcodes and operand types for 16/32/64-bit modes
         // OR AL, imm8 - 0C ib (accumulator)
-        instf!("or", Legacy, opcode!(0x0C), no_modrm(), reg(Fgr(0), u(8), W), imm_u(8)),
+        instf!("or", Legacy, opcode!(0x0C), no_modrm(), fixed(AL, u(8), W), imm_u(8)),
         // OR AX, imm16 - 0D iw
-        instf!("or", Legacy, opcode!(0x0D), no_modrm(), reg(Fgr(0), u(16), W), imm_u(16)),
+        instf!("or", Legacy, opcode!(0x0D), no_modrm(), fixed(AX, u(16), W), imm_u(16)),
         // OR EAX, imm32 - 0D id
-        instf!("or", Legacy, opcode!(0x0D), no_modrm(), reg(Fgr(0), u(32), W), imm_u(32)),
+        instf!("or", Legacy, opcode!(0x0D), no_modrm(), fixed(EAX, u(32), W), imm_u(32)),
         // OR RAX, imm32 - 0D id (REX.W)
-        instf!("or", Legacy, opcode!(0x0D), no_modrm(), reg(Fgr(0), u(64), W), imm_i(32)),
+        instf!("or", Legacy, opcode!(0x0D), no_modrm(), fixed(RAX, u(64), W), imm_i(32)),
 
         // OR r/m8, imm8 - 80 /1 ib
         instf!("or", Legacy, opcode!(0x80), digit(1), rm(Gpr, u(8), W), imm_u(8)),

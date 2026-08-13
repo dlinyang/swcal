@@ -13,6 +13,7 @@ pub mod codegen {
     use crate::inst::imm::*;
     use crate::inst::modrm::*;
     use crate::inst::rel::*;
+    use crate::inst::reg::*;
     include!(concat!(env!("OUT_DIR"),"/inst_info.rs"));
     include!(concat!(env!("OUT_DIR"),"/codegen.rs"));
 }
